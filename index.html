@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Beer Value">
+<meta name="theme-color" content="#151008">
+<title>Beer Value</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23151008'/%3E%3Cpath d='M32 28h32v48H32z' fill='none' stroke='%23e0a940' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M64 40h7a8 8 0 0 1 8 8v8a8 8 0 0 1-8 8h-7' fill='none' stroke='%23e0a940' stroke-width='5'/%3E%3Cpath d='M32 40h32' fill='none' stroke='%23e0a940' stroke-width='5'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#151008; --card:#211a10; --card2:#2a2114; --gold:#e0a940; --gold-dim:#8a6a2a;
+    --text:#f3ead9; --text-dim:#b4a68c; --green:#6fbf73; --red:#e06a5a; --border:#3a2f1c;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif; overflow-x:hidden;}
+  body{overscroll-behavior:none;}
+  body.docked{padding-bottom:78px;}
+
+  header{position:sticky; top:0; z-index:10; background:linear-gradient(180deg,var(--bg) 80%,transparent);
+    padding:16px 16px 6px; text-align:center; cursor:pointer;}
+  header h1{margin:0; font-size:22px; letter-spacing:0.5px;}
+  header h1 span{color:var(--gold);}
+  header p{margin:2px 0 0; font-size:12px; color:var(--text-dim);}
+
+  /* ---------- Landing ---------- */
+  .landing-wrap{
+    position:fixed; left:0; right:0; top:32%; text-align:center; z-index:5;
+    transition:opacity .35s ease, transform .35s ease; pointer-events:none;
+  }
+  .landing-wrap p{font-size:14px; color:var(--text-dim); margin:0;}
+  .landing-wrap.visible{opacity:1; transform:translateY(0);}
+  .landing-wrap.hidden{opacity:0; transform:translateY(10px);}
+
+  nav.tabbar{
+    position:fixed; z-index:20; display:flex; gap:22px;
+    left:50%; top:46%; transform:translate(-50%,-50%);
+    transition:top .5s cubic-bezier(.22,1,.36,1), left .5s cubic-bezier(.22,1,.36,1),
+               right .5s cubic-bezier(.22,1,.36,1), bottom .5s cubic-bezier(.22,1,.36,1),
+               transform .5s cubic-bezier(.22,1,.36,1), padding .5s ease, gap .5s ease,
+               background-color .4s ease, border-color .4s ease;
+  }
+  nav.tabbar.docked{
+    left:0; right:0; bottom:0; top:auto; transform:none; gap:0;
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    background:rgba(21,16,8,0.97); border-top:1px solid var(--border);
+    backdrop-filter:blur(10px);
+  }
+  nav.tabbar button{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    width:132px; height:132px; border-radius:26px; background:var(--card); border:1px solid var(--border);
+    color:var(--text); font-size:15px; font-weight:600; box-shadow:0 10px 26px rgba(0,0,0,.4);
+    transition:all .5s cubic-bezier(.22,1,.36,1), transform .25s cubic-bezier(.32,.72,0,1);
+  }
+  nav.tabbar:not(.docked) button:active{transform:scale(.94);}
+  nav.tabbar button .icon{font-size:50px; transition:font-size .5s cubic-bezier(.22,1,.36,1), color .3s ease; line-height:1;}
+  nav.tabbar:not(.docked) button .icon{color:var(--gold);}
+  .icon svg{width:1em; height:1em; display:block;}
+  nav.tabbar.docked button{
+    width:auto; height:auto; flex:1; border-radius:10px; background:none; border:none;
+    box-shadow:none; padding:8px 2px 4px; font-size:11px; gap:3px; color:var(--text-dim);
+  }
+  nav.tabbar.docked button .icon{font-size:20px;}
+  nav.tabbar.docked button.active{color:var(--gold);}
+  nav.tabbar.docked button.active .icon{filter:drop-shadow(0 0 4px rgba(224,169,64,0.5));}
+
+  main{padding:8px 14px 20px; max-width:520px; margin:0 auto; opacity:0; transition:opacity .4s ease .1s;}
+  main.show{opacity:1;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:12px;}
+  .card h2{margin:0 0 10px; font-size:15px; color:var(--gold); font-weight:600;}
+  .card .desc{font-size:12px; color:var(--text-dim); margin:-6px 0 10px;}
+
+  label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px;}
+  .row{display:flex; gap:8px; margin-bottom:10px;}
+  .field{flex:1;}
+  input[type=text], input[type=number], input[type=url]{
+    width:100%; background:var(--card2); border:1px solid var(--border); color:var(--text);
+    padding:10px 10px; border-radius:10px; font-size:16px;
+  }
+  input:focus{outline:none; border-color:var(--gold-dim);}
+  .size-input{position:relative;}
+  .size-input .dollar{position:absolute; left:10px; bottom:11px; color:var(--text-dim); font-size:16px;}
+  .money input{padding-left:22px;}
+
+  .result{border-radius:12px; padding:10px 12px; margin-top:8px; font-size:14px;
+    display:flex; justify-content:space-between; align-items:center; background:var(--card2); border:1px solid var(--border);}
+  .result.win{border-color:var(--green); background:rgba(111,191,115,0.12);}
+  .result .name{font-weight:600;}
+  .result .rate{color:var(--text-dim); font-size:12px;}
+  .badge{background:var(--green); color:#0f1a10; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px;}
+
+  button{font-family:inherit; cursor:pointer;}
+  .btn{width:100%; padding:12px; border-radius:12px; border:none; font-size:15px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:transform .18s cubic-bezier(.32,.72,0,1), opacity .18s ease;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--gold); color:#1a1409;}
+  .btn-ghost{background:transparent; border:1px solid var(--border); color:var(--text-dim);}
+  .btn-small{padding:8px 12px; font-size:13px; border-radius:9px; width:auto;}
+  .share-btn{width:100%; margin-top:8px; color:var(--gold); border-color:var(--gold-dim);}
+  .best-banner .share-btn{margin-top:12px;}
+
+  .method-tabs{display:flex; gap:6px; margin-bottom:12px;}
+  .method-btn{flex:1; padding:9px 4px; border-radius:10px; border:1px solid var(--border); background:var(--card2); color:var(--text-dim); font-size:12px; font-weight:600;
+    transition:transform .18s cubic-bezier(.32,.72,0,1), background-color .25s ease, color .25s ease, border-color .25s ease;}
+  .method-btn:active{transform:scale(.96);}
+  .method-btn.active{background:var(--gold); color:#1a1409; border-color:var(--gold);}
+  .method-panel{display:none;}
+  .method-panel.active{display:block;}
+  .hint{font-size:11.5px; color:var(--text-dim); margin:8px 0 0; line-height:1.4;}
+  input[type=file]{display:none;}
+  .photo-preview{width:100%; border-radius:12px; margin-top:10px; display:none; max-height:180px; object-fit:cover;}
+
+  .beer-card{position:relative;}
+  .beer-card .remove{position:absolute; top:10px; right:10px; background:none; border:none; color:var(--red); font-size:18px; padding:2px 6px;}
+  .beer-name-input{font-size:16px; font-weight:600; margin-bottom:10px; background:transparent; border:none; border-bottom:1px solid var(--border); border-radius:0; padding:6px 26px 6px 2px; width:calc(100% - 30px);}
+  .single-result{display:none;}
+  .custom-x{background:none; border:none; color:var(--red); font-size:16px; padding:0 4px 10px; align-self:flex-end;}
+  .card-actions{display:flex; gap:8px; margin-top:2px;}
+  .card-actions .btn-small{flex:1;}
+
+  .best-banner{background:linear-gradient(135deg,#3a2f14,#241c0e); border:1px solid var(--gold-dim); border-radius:16px; padding:16px; margin-bottom:14px; text-align:center;}
+  .best-banner .label{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--gold);}
+  .best-banner .value{font-size:24px; font-weight:700; margin:4px 0;}
+  .best-banner .sub{font-size:12px; color:var(--text-dim);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{text-align:left; padding:7px 4px; border-bottom:1px solid var(--border);}
+  th{color:var(--text-dim); font-weight:500; font-size:11px; text-transform:uppercase;}
+  tr:first-child td{color:var(--green); font-weight:700;}
+
+  textarea{width:100%; min-height:120px; background:var(--card2); border:1px solid var(--border); color:var(--text);
+    border-radius:10px; padding:10px; font-size:14px; resize:vertical; font-family:inherit;}
+
+  .empty{color:var(--text-dim); font-size:13px; text-align:center; padding:20px 10px;}
+
+  /* ---------- Intro splash (BPI pour animation) ---------- */
+  #intro{
+    position:fixed; inset:0; z-index:100; background:#0d0805; overflow:hidden;
+    font-family:'Manrope',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    cursor:default; user-select:none; -webkit-user-select:none;
+    transition:opacity .6s cubic-bezier(.32,.72,0,1);
+  }
+  #intro.out{opacity:0; pointer-events:none;}
+  beer-scene{position:absolute; inset:0;}
+  .intro-vignette{
+    position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 42%, transparent 55%, rgba(0,0,0,.5) 100%);
+  }
+  .intro-byline{
+    position:absolute; bottom:11.5%; left:0; right:0;
+    display:flex; justify-content:center; pointer-events:none; opacity:0;
+  }
+  #intro.ready .intro-byline{animation:bylineIn 1s ease-out 4.8s both;}
+  .intro-byline span{font-weight:600; font-size:15px; letter-spacing:1.5px; color:rgba(255,225,170,.85);}
+  .intro-dots{
+    position:absolute; bottom:5%; left:0; right:0;
+    display:flex; justify-content:center; gap:9px; pointer-events:none;
+  }
+  .intro-dots span{width:7px; height:7px; border-radius:50%; background:#f2a71c; animation:dotPulse 1.2s ease-in-out infinite;}
+  .intro-dots span:nth-child(2){animation-delay:.18s;}
+  .intro-dots span:nth-child(3){animation-delay:.36s;}
+  @keyframes bylineIn{
+    0%{opacity:0; filter:blur(4px); transform:translateY(6px);}
+    100%{opacity:1; filter:blur(0); transform:translateY(0);}
+  }
+  @keyframes dotPulse{
+    0%,100%{opacity:.25; transform:translateY(0);}
+    50%{opacity:1; transform:translateY(-4px);}
+  }
+
+  /* ---------- Motion ---------- */
+  @keyframes rise{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+  .tab-panel.active{animation:rise .45s cubic-bezier(.32,.72,0,1) both;}
+  .method-panel.active{animation:rise .3s cubic-bezier(.32,.72,0,1) both;}
+  .result{animation:rise .4s cubic-bezier(.32,.72,0,1) both;}
+  .best-banner{animation:rise .5s cubic-bezier(.32,.72,0,1) both;}
+  .beer-card{animation:rise .4s cubic-bezier(.32,.72,0,1) both;}
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{animation:none !important; transition:none !important;}
+  }
+  .spinner{width:16px; height:16px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; display:inline-block; animation:spin .8s linear infinite; vertical-align:-3px; margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div id="intro" aria-hidden="true">
+  <beer-scene></beer-scene>
+  <div class="intro-vignette"></div>
+  <div class="intro-byline"><span>By Ollie and Shwenno</span></div>
+  <div class="intro-dots"><span></span><span></span><span></span></div>
+</div>
+
+<header id="home-btn">
+  <h1>Beer <span>Value</span></h1>
+  <p>Schooner 375 · Pint 550 · Jug 1125 ml</p>
+</header>
+
+<div class="landing-wrap visible" id="landing-wrap">
+  <p>What do you want to do?</p>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <button data-tab="quick"><span class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-1.1 18H8.1L7 3z"/><path d="M7.4 8.5h9.2"/></svg></span>Quick Check</button>
+  <button data-tab="paste"><span class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span>Paste Menu</button>
+</nav>
+
+<main id="main">
+
+  <!-- QUICK CHECK -->
+  <div class="tab-panel" id="tab-quick">
+    <div class="card">
+      <h2>One beer, which size wins?</h2>
+      <div class="row">
+        <div class="field size-input money">
+          <label>Schooner (375ml)</label>
+          <span class="dollar">$</span>
+          <input type="number" inputmode="decimal" step="0.05" id="q-schooner" placeholder="9.00">
+        </div>
+        <div class="field size-input money">
+          <label>Pint (550ml)</label>
+          <span class="dollar">$</span>
+          <input type="number" inputmode="decimal" step="0.05" id="q-pint" placeholder="12.00">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field size-input money">
+          <label>Jug (1125ml)</label>
+          <span class="dollar">$</span>
+          <input type="number" inputmode="decimal" step="0.05" id="q-jug" placeholder="28.00">
+        </div>
+      </div>
+    </div>
+    <div id="q-results"></div>
+  </div>
+
+  <!-- PASTE MENU -->
+  <div class="tab-panel" id="tab-paste">
+    <div class="card">
+      <h2>Add a menu</h2>
+      <div class="method-tabs">
+        <button class="method-btn active" data-method="text">Paste text</button>
+        <button class="method-btn" data-method="photo">Photo</button>
+      </div>
+
+      <div class="method-panel active" id="method-text">
+        <textarea id="paste-input" placeholder="e.g.
+Great Northern
+Schooner $9.00
+Pint $12.50
+Jug $28.00"></textarea>
+        <button class="btn btn-primary" id="parse-btn" style="margin-top:10px;">Parse text</button>
+      </div>
+
+      <div class="method-panel" id="method-photo">
+        <label for="photo-input" class="btn btn-primary" style="text-align:center;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="m9 7 1.1-2.2A1.5 1.5 0 0 1 11.4 4h1.2a1.5 1.5 0 0 1 1.3.8L15 7"/><circle cx="12" cy="13" r="3.5"/></svg>Take or choose photo</label>
+        <input type="file" accept="image/*" id="photo-input">
+        <img id="photo-preview" class="photo-preview" alt="">
+        <p class="hint" id="ocr-status">Scans on your phone. First scan downloads the reader (~15&nbsp;MB), so it needs internet and can take 20–30s — after that it's fast. A straight-on, well-lit photo works best.</p>
+      </div>
+
+      <p class="hint" id="parse-status"></p>
+    </div>
+
+    <div id="finder-list"></div>
+    <button class="btn btn-ghost" id="add-beer" style="margin-bottom:12px;">+ Add beer manually</button>
+    <button class="btn btn-primary" id="find-best"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 5H5v1a3.5 3.5 0 0 0 3 3.5"/><path d="M16 5h3v1a3.5 3.5 0 0 1-3 3.5"/><path d="M12 13v6"/><path d="M9 19h6"/></svg>Find best deal (all beers)</button>
+    <div id="finder-results" style="margin-top:14px;"></div>
+  </div>
+
+</main>
+
+<script>
+/* <beer-scene> — WebGL beer pour: tulip pint, liquid fill, foam at brim, BPI reveal. */
+(function () {
+  const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+  // Tulip pint outer profile: [y, r]
+  const OUTER = [[0, 0.58], [0.08, 0.62], [0.5, 0.70], [1.1, 0.82], [1.9, 0.95], [2.5, 1.02], [2.9, 1.03], [3.15, 1.00], [3.4, 0.98]];
+  const WALL = 0.045;
+  const H = 3.4;
+  const LEVEL_MAX = 3.02;
+
+  function interp(pts, y) {
+    if (y <= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i++) {
+      if (y <= pts[i][0]) {
+        const [y0, r0] = pts[i - 1], [y1, r1] = pts[i];
+        return r0 + (r1 - r0) * ((y - y0) / (y1 - y0));
+      }
+    }
+    return pts[pts.length - 1][1];
+  }
+  const outerR = (y) => interp(OUTER, y);
+  const innerR = (y) => outerR(y) - WALL;
+  const liquidR = (y) => innerR(y) - 0.008;
+
+  const easeOutCubic = (x) => 1 - Math.pow(1 - Math.min(Math.max(x, 0), 1), 3);
+  const smooth = (x) => { x = Math.min(Math.max(x, 0), 1); return x * x * (3 - 2 * x); };
+
+  class BeerScene extends HTMLElement {
+    connectedCallback() {
+      if (this._started) return;
+      this._started = true;
+      this.style.display = 'block';
+      this.style.width = '100%';
+      this.style.height = '100%';
+      this._t0 = performance.now();
+      this.init().then(() => this.dispatchEvent(new CustomEvent('ready'))).catch((e) => { console.error('beer-scene init failed', e); this.dispatchEvent(new CustomEvent('failed')); });
+    }
+
+    disconnectedCallback() {
+      if (this._raf) cancelAnimationFrame(this._raf);
+      if (this._ro) this._ro.disconnect();
+      if (this.renderer) this.renderer.dispose();
+    }
+
+    replay() { this._t0 = performance.now(); }
+
+    bgTexture(THREE) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 1024;
+      const x = c.getContext('2d');
+      x.fillStyle = '#0d0805';
+      x.fillRect(0, 0, 512, 1024);
+      let g = x.createRadialGradient(256, 400, 60, 256, 430, 620);
+      g.addColorStop(0, '#432c14');
+      g.addColorStop(0.42, '#1e130a');
+      g.addColorStop(1, '#0a0604');
+      x.fillStyle = g;
+      x.fillRect(0, 0, 512, 1024);
+      // warm halo behind the glass
+      g = x.createRadialGradient(256, 430, 20, 256, 430, 300);
+      g.addColorStop(0, 'rgba(250,180,60,.5)');
+      g.addColorStop(0.5, 'rgba(214,126,10,.16)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = g;
+      x.fillRect(0, 0, 512, 1024);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+
+    envTexture(THREE) {
+      // Equirect canvas: dark pub with warm band + two cool "window" strips for glassy reflections
+      const c = document.createElement('canvas');
+      c.width = 1024; c.height = 512;
+      const x = c.getContext('2d');
+      x.fillStyle = '#1a1108';
+      x.fillRect(0, 0, 1024, 512);
+      const gg = x.createLinearGradient(0, 0, 0, 512);
+      gg.addColorStop(0, '#2c1d0e');
+      gg.addColorStop(0.55, '#160e07');
+      gg.addColorStop(1, '#050302');
+      x.fillStyle = gg;
+      x.fillRect(0, 0, 1024, 512);
+      // warm glow band (candles / bar lights)
+      let w = x.createLinearGradient(0, 200, 0, 340);
+      w.addColorStop(0, 'rgba(255,170,60,0)');
+      w.addColorStop(0.5, 'rgba(255,170,60,.55)');
+      w.addColorStop(1, 'rgba(255,170,60,0)');
+      x.fillStyle = w;
+      x.fillRect(0, 200, 1024, 140);
+      // bright window strips (key specular)
+      x.fillStyle = 'rgba(255,244,224,.95)';
+      x.filter = 'blur(6px)';
+      x.fillRect(120, 60, 70, 280);
+      x.fillRect(640, 90, 40, 230);
+      x.filter = 'none';
+      const t = new THREE.CanvasTexture(c);
+      t.mapping = THREE.EquirectangularReflectionMapping;
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+
+    bpiTexture(THREE) {
+      const W = 1024, Hc = 512;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = Hc;
+      const x = c.getContext('2d');
+      const FONT = '900 280px "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+      // inverse mask (everything EXCEPT the letters), used to cast inner shadows
+      const inv = document.createElement('canvas');
+      inv.width = W; inv.height = Hc;
+      const ix = inv.getContext('2d');
+      ix.fillStyle = '#000';
+      ix.fillRect(0, 0, W, Hc);
+      ix.globalCompositeOperation = 'destination-out';
+      ix.font = FONT; ix.textAlign = 'center'; ix.textBaseline = 'middle';
+      ix.fillText('BPI', W / 2, 262);
+
+      x.clearRect(0, 0, W, Hc);
+      x.font = FONT; x.textAlign = 'center'; x.textBaseline = 'middle';
+      // 1. recessed base: foam in shadow (darker cream)
+      x.fillStyle = '#d3ba82';
+      x.fillText('BPI', W / 2, 262);
+      x.globalCompositeOperation = 'source-atop';
+      // 2. faint amber deep in the gaps (beer glimpsed through thin foam)
+      x.fillStyle = 'rgba(206,132,36,.36)';
+      x.fillText('BPI', W / 2, 262);
+      // 3. dark inner shadow hugging the top edges (lit from above)
+      x.save();
+      x.filter = 'blur(12px)';
+      x.globalAlpha = 0.6;
+      x.drawImage(inv, 0, 10);
+      x.restore();
+      // 4. soft light catch along the bottom inner edges
+      x.save();
+      x.filter = 'blur(6px)';
+      x.globalAlpha = 0.75;
+      x.globalCompositeOperation = 'source-atop';
+      // tint the inverse mask white for the light pass
+      const lt = document.createElement('canvas');
+      lt.width = W; lt.height = Hc;
+      const lx = lt.getContext('2d');
+      lx.drawImage(inv, 0, 0);
+      lx.globalCompositeOperation = 'source-in';
+      lx.fillStyle = '#fffdf2';
+      lx.fillRect(0, 0, W, Hc);
+      x.drawImage(lt, 0, -8);
+      x.restore();
+      // 5. bright foam lip below the letters (pushed-up edge), outside the glyphs
+      x.globalCompositeOperation = 'destination-over';
+      x.save();
+      x.filter = 'blur(7px)';
+      x.fillStyle = 'rgba(255,254,247,.9)';
+      x.fillText('BPI', W / 2, 272);
+      x.restore();
+      x.globalCompositeOperation = 'source-over';
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      return t;
+    }
+
+    async init() {
+      const THREE = await import(THREE_URL);
+      this.THREE = THREE;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
+      this.renderer = renderer;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.localClippingEnabled = true;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      renderer.domElement.style.display = 'block';
+      this.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = this.bgTexture(THREE);
+      const env = this.envTexture(THREE);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromEquirectangular(env).texture;
+
+      const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
+      this.camera = camera;
+
+      // ---------- glass (outer wall + rim + inner wall, one lathe) ----------
+      const pts = [];
+      pts.push(new THREE.Vector2(0.001, 0));
+      OUTER.forEach(([y, r]) => pts.push(new THREE.Vector2(r, y)));
+      pts.push(new THREE.Vector2(outerR(H) - WALL, H)); // rim
+      for (let i = OUTER.length - 1; i >= 1; i--) {
+        const [y, r] = OUTER[i];
+        pts.push(new THREE.Vector2(r - WALL, Math.max(y, 0.14)));
+      }
+      pts.push(new THREE.Vector2(0.4, 0.14));
+      pts.push(new THREE.Vector2(0.001, 0.14));
+      const glassGeo = new THREE.LatheGeometry(pts, 72);
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff, transparent: true, opacity: 0.10, roughness: 0.03,
+        clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 2.0,
+        depthWrite: false, side: THREE.DoubleSide
+      });
+      const glass = new THREE.Mesh(glassGeo, glassMat);
+      glass.renderOrder = 6;
+      scene.add(glass);
+
+      // ---------- liquid ----------
+      const LQ = [[0.16, liquidR(0.16)], [0.5, liquidR(0.5)], [1.1, liquidR(1.1)], [1.9, liquidR(1.9)], [2.5, liquidR(2.5)], [2.9, liquidR(2.9)], [3.15, liquidR(3.15)], [3.35, liquidR(3.35)]];
+      const lpts = [new THREE.Vector2(0.001, 0.16)];
+      LQ.forEach(([y, r]) => lpts.push(new THREE.Vector2(r, y)));
+      lpts.push(new THREE.Vector2(0.001, 3.35));
+      const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+      this.clipPlane = clipPlane;
+      const beerGrad = (() => {
+        const c = document.createElement('canvas');
+        c.width = 4; c.height = 256;
+        const x = c.getContext('2d');
+        const g = x.createLinearGradient(0, 256, 0, 0);
+        g.addColorStop(0, '#a85404');
+        g.addColorStop(0.4, '#d0740a');
+        g.addColorStop(0.75, '#ef9812');
+        g.addColorStop(1, '#ffbe3e');
+        x.fillStyle = g;
+        x.fillRect(0, 0, 4, 256);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      })();
+      const beerMat = new THREE.MeshBasicMaterial({
+        map: beerGrad, toneMapped: false,
+        transparent: true, opacity: 0.96, depthWrite: false,
+        clippingPlanes: [clipPlane], side: THREE.DoubleSide
+      });
+      const liquid = new THREE.Mesh(new THREE.LatheGeometry(lpts, 72), beerMat);
+      liquid.renderOrder = 1;
+      liquid.visible = false;
+      this.liquid = liquid;
+      scene.add(liquid);
+
+      // liquid surface disc
+      const surfMat = new THREE.MeshStandardMaterial({ color: 0xffc84f, roughness: 0.25, emissive: 0x8a5205, emissiveIntensity: 0.35 });
+      const surface = new THREE.Mesh(new THREE.CircleGeometry(1, 64), surfMat);
+      surface.rotation.x = -Math.PI / 2;
+      surface.visible = false;
+      this.surface = surface;
+      scene.add(surface);
+
+      // ---------- foam (band inside the rim) ----------
+      const foam = new THREE.Group();
+      foam.position.y = LEVEL_MAX;
+      const foamMat = new THREE.MeshStandardMaterial({ color: 0xfff8ea, emissive: new THREE.Color(0xfff3dc), emissiveIntensity: 0.32, roughness: 0.95 });
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(innerR(3.3) * 0.985, innerR(3.05) * 0.985, 0.3, 64), foamMat);
+      band.position.y = 0.15;
+      foam.add(band);
+      const bumpGeo = new THREE.SphereGeometry(1, 16, 12);
+      for (let i = 0; i < 30; i++) {
+        const b = new THREE.Mesh(bumpGeo, foamMat);
+        const a = Math.random() * Math.PI * 2;
+        const rr = Math.sqrt(Math.random()) * innerR(3.3) * 0.82;
+        const s = 0.07 + Math.random() * 0.09;
+        b.scale.set(s, s * 0.55, s);
+        b.position.set(Math.cos(a) * rr, 0.3 + Math.random() * 0.02, Math.sin(a) * rr);
+        foam.add(b);
+      }
+      foam.scale.y = 0.001;
+      foam.visible = false;
+      this.foam = foam;
+      scene.add(foam);
+
+      // ---------- BPI plane (in front of foam) ----------
+      const bpiMat = new THREE.MeshBasicMaterial({ map: this.bpiTexture(THREE), transparent: true, opacity: 0, depthWrite: false });
+      const bpi = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.55), bpiMat);
+      bpi.position.set(0, LEVEL_MAX + 0.13, 0.97);
+      bpi.renderOrder = 20;
+      this.bpiMat = bpiMat;
+      scene.add(bpi);
+      this.bpi = bpi;
+
+      // ---------- bubbles ----------
+      const N = 70;
+      const bubbleMat = new THREE.MeshStandardMaterial({ color: 0xffe9b0, emissive: new THREE.Color(0x8a5205), emissiveIntensity: 0.5, roughness: 0.2, transparent: true, opacity: 0.55, clippingPlanes: [clipPlane] });
+      const bubbles = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), bubbleMat, N);
+      bubbles.renderOrder = 2;
+      bubbles.visible = false;
+      this.bubbles = bubbles;
+      this.bubbleSpec = [];
+      for (let i = 0; i < N; i++) {
+        this.bubbleSpec.push({
+          a: Math.random() * Math.PI * 2,
+          f: Math.pow(Math.random(), 0.6) * 0.85,
+          s: 0.35 + Math.random() * 0.6,
+          p: Math.random() * 10,
+          sc: 0.012 + Math.random() * 0.026
+        });
+      }
+      scene.add(bubbles);
+
+      // ---------- lights ----------
+      scene.add(new THREE.AmbientLight(0xffdcb0, 0.35));
+      const key = new THREE.DirectionalLight(0xffe0b0, 1.6);
+      key.position.set(2.5, 5, 4);
+      scene.add(key);
+      const warm = new THREE.PointLight(0xff9a2a, 30, 14, 2);
+      warm.position.set(0, 1.4, -2.4);
+      scene.add(warm);
+      const rim = new THREE.DirectionalLight(0xbfd8ff, 0.5);
+      rim.position.set(-4, 3, -3);
+      scene.add(rim);
+
+      // ---------- sizing ----------
+      const resize = () => {
+        const w = this.clientWidth || 390, h = this.clientHeight || 844;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        const halfFov = THREE.MathUtils.degToRad(camera.fov / 2);
+        const dH = 2.35 / Math.tan(halfFov);
+        const dW = 1.55 / (Math.tan(halfFov) * camera.aspect);
+        const d = Math.max(dH, dW);
+        camera.position.set(0, 2.45, d);
+        camera.lookAt(0, 1.55, 0);
+        camera.updateProjectionMatrix();
+        bpi.lookAt(camera.position.x, camera.position.y, camera.position.z);
+      };
+      resize();
+      this._ro = new ResizeObserver(resize);
+      this._ro.observe(this);
+
+      // ---------- timeline ----------
+      const m4 = new THREE.Matrix4();
+      this._t0 = performance.now();
+      const tick = () => {
+        this._raf = requestAnimationFrame(tick);
+        const t = (performance.now() - this._t0) / 1000;
+
+        const level = easeOutCubic((t - 0.4) / 2.8) * LEVEL_MAX;
+        clipPlane.constant = level;
+        liquid.visible = level > 0.18;
+        surface.visible = level > 0.18 && level < LEVEL_MAX - 0.01;
+        if (surface.visible) {
+          const r = Math.max(liquidR(Math.min(level, 3.3)) - 0.02, 0.05);
+          surface.position.y = level;
+          surface.scale.set(r, r, 1);
+        }
+
+        const f = smooth((t - 3.1) / 0.7);
+        foam.visible = f > 0.002;
+        foam.scale.y = Math.max(f, 0.001);
+
+        bpiMat.opacity = smooth((t - 3.9) / 0.9);
+
+        // bubbles
+        const show = level > 0.5;
+        bubbles.visible = show;
+        if (show) {
+          const span = Math.max(level - 0.45, 0.1);
+          for (let i = 0; i < N; i++) {
+            const b = this.bubbleSpec[i];
+            const y = 0.25 + ((t * b.s + b.p) % span);
+            const r = liquidR(y) * b.f * 0.92;
+            m4.makeScale(b.sc, b.sc, b.sc);
+            m4.setPosition(Math.cos(b.a) * r, y, Math.sin(b.a) * r);
+            bubbles.setMatrixAt(i, m4);
+          }
+          bubbles.instanceMatrix.needsUpdate = true;
+        }
+
+        renderer.render(scene, camera);
+      };
+      tick();
+    }
+  }
+
+  if (!customElements.get('beer-scene')) customElements.define('beer-scene', BeerScene);
+})();
+</script>
+<script>
+/* Intro splash controller: play (~5.8s) -> hold 1s -> fade to landing. Skips instantly if 3D can't load. */
+(function(){
+  var intro = document.getElementById('intro');
+  if(!intro) return;
+  var scene = intro.querySelector('beer-scene');
+  var done = false;
+  function dismiss(){
+    if(done) return; done = true;
+    intro.classList.add('out');
+    setTimeout(function(){ intro.remove(); }, 700);
+  }
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){ intro.remove(); return; }
+  var guard = setTimeout(dismiss, 4000);   // offline / no WebGL / slow: skip straight to the app
+  scene.addEventListener('ready', function(){
+    clearTimeout(guard);
+    intro.classList.add('ready');          // syncs the byline fade to scene start
+    setTimeout(dismiss, 6800);             // full timeline ~5.8s + 1s hold
+  });
+  scene.addEventListener('failed', dismiss);
+})();
+</script>
+<script>
+(function(){
+  "use strict";
+  const SIZES = [
+    {key:'pot',      label:'Pot / Middy', ml:285},
+    {key:'schooner', label:'Schooner',    ml:375},
+    {key:'pint',     label:'Pint',        ml:550},
+    {key:'jug',      label:'Jug',         ml:1125},
+  ];
+  const QUICK_SIZES = SIZES.filter(s=> s.key !== 'pot');
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => '$' + n.toFixed(2);
+  const validPrice = (p) => !isNaN(p) && p >= 2 && p <= 100;
+  const ICON_SHARE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M8 11H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>';
+
+  // ---------- Landing -> Docked tab bar ----------
+  const tabbar = $('tabbar');
+  const landingWrap = $('landing-wrap');
+  const main = $('main');
+  let currentTab = null;
+
+  function activateTab(name){
+    currentTab = name;
+    tabbar.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+    document.querySelectorAll('.tab-panel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+name));
+  }
+
+  function dock(name){
+    tabbar.classList.add('docked');
+    document.body.classList.add('docked');
+    landingWrap.classList.remove('visible');
+    landingWrap.classList.add('hidden');
+    activateTab(name);
+    main.classList.add('show');
+    saveState();
+  }
+
+  function undock(){
+    tabbar.classList.remove('docked');
+    document.body.classList.remove('docked');
+    landingWrap.classList.remove('hidden');
+    landingWrap.classList.add('visible');
+    main.classList.remove('show');
+    currentTab = null;
+    tabbar.querySelectorAll('button').forEach(b=> b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=> p.classList.remove('active'));
+    saveState();
+  }
+
+  tabbar.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(tabbar.classList.contains('docked')){
+        activateTab(btn.dataset.tab);
+        saveState();
+      } else {
+        dock(btn.dataset.tab);
+      }
+    });
+  });
+
+  $('home-btn').addEventListener('click', undock);
+
+  // ---------- Rate helpers & sharing ----------
+  function ratePerL(price, ml){ return (price*1000)/ml; }
+
+  function buildShareMsg(name, e){
+    const what = name ? 'a ' + name : 'a beer';
+    return "🍺 Beer o'clock! I'm on " + what + " — " + e.label + " for " + fmt(e.price) +
+           " (" + fmt(e.rate) + "/L, best value here). Come join!";
+  }
+
+  async function shareText(msg){
+    if(navigator.share){
+      try{ await navigator.share({text: msg}); return; }
+      catch(err){ if(err && err.name === 'AbortError') return; }
+    }
+    const sep = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? '&' : '?';
+    window.location.href = 'sms:' + sep + 'body=' + encodeURIComponent(msg);
+  }
+
+  function renderRateList(container, entries, shareName){
+    const withPrice = entries.filter(e=>e.price!==null && !isNaN(e.price) && e.price>0);
+    if(withPrice.length===0){ container.innerHTML = '<div class="empty">Enter at least one price.</div>'; return; }
+    withPrice.forEach(e=> e.rate = ratePerL(e.price, e.ml));
+    withPrice.sort((a,b)=>a.rate-b.rate);
+    const best = withPrice[0];
+    let html = '';
+    withPrice.forEach((e,i)=>{
+      const pctWorse = i===0 ? 0 : Math.round(((e.rate-best.rate)/best.rate)*100);
+      html += `<div class="result ${i===0?'win':''}" style="animation-delay:${i*45}ms">
+        <div>
+          <div class="name">${e.label}${i===0?'<span class="badge">BEST VALUE</span>':''}</div>
+          <div class="rate">${fmt(e.price)} · ${fmt(e.rate)}/L${i>0?` · ${pctWorse}% worse`:''}</div>
+        </div>
+      </div>`;
+    });
+    container.innerHTML = html;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-small btn-ghost share-btn';
+    btn.innerHTML = ICON_SHARE + 'Tell a mate';
+    btn.addEventListener('click', ()=> shareText(buildShareMsg(shareName, best)));
+    container.appendChild(btn);
+  }
+
+  // ---------- Quick Check ----------
+  function updateQuick(){
+    const entries = QUICK_SIZES.map(s=>({label:s.label, price: parseFloat($('q-'+s.key).value), ml:s.ml}));
+    renderRateList($('q-results'), entries, '');
+    saveState();
+  }
+  QUICK_SIZES.forEach(s=> $('q-'+s.key).addEventListener('input', updateQuick));
+
+  // ---------- Beer list (Paste Menu results) ----------
+  let beers = [];
+  let idCounter = 0;
+
+  function addBeer(data){
+    const b = Object.assign({id:'b'+(idCounter++), name:'', pot:'', schooner:'', pint:'', jug:'', customs:[]}, data||{});
+    if(!Array.isArray(b.customs)) b.customs = [];
+    beers.push(b);
+    renderFinder();
+    saveState();
+    return b;
+  }
+  function removeBeer(id){
+    beers = beers.filter(b=>b.id!==id);
+    renderFinder();
+    saveState();
+  }
+
+  function escAttr(s){ return (s===undefined||s===null) ? '' : String(s).replace(/"/g,'&quot;'); }
+  function escHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+  function sizeField(b, s){
+    return `<div class="field size-input money">
+      <label>${s.label} (${s.ml}ml)</label><span class="dollar">$</span>
+      <input type="number" inputmode="decimal" step="0.05" data-field="${s.key}" data-id="${b.id}" value="${escAttr(b[s.key])}">
+    </div>`;
+  }
+
+  function renderFinder(){
+    const list = $('finder-list');
+    if(beers.length===0){
+      list.innerHTML = '<div class="empty">No beers yet — parse a menu above, or add one manually.</div>';
+      return;
+    }
+    list.innerHTML = beers.map(b=>`
+      <div class="card beer-card" data-id="${b.id}">
+        <button class="remove" data-remove="${b.id}">✕</button>
+        <input type="text" class="beer-name-input" data-field="name" data-id="${b.id}" placeholder="Beer name" value="${escAttr(b.name)}">
+        <div class="row">${sizeField(b, SIZES[0])}${sizeField(b, SIZES[1])}</div>
+        <div class="row">${sizeField(b, SIZES[2])}${sizeField(b, SIZES[3])}</div>
+        ${b.customs.map((c,ci)=>`
+        <div class="row">
+          <div class="field size-input" style="max-width:38%">
+            <label>Size (ml)</label>
+            <input type="number" inputmode="numeric" data-cfield="ml" data-cidx="${ci}" data-id="${b.id}" value="${escAttr(c.ml)}" placeholder="425">
+          </div>
+          <div class="field size-input money">
+            <label>Price</label><span class="dollar">$</span>
+            <input type="number" inputmode="decimal" step="0.05" data-cfield="price" data-cidx="${ci}" data-id="${b.id}" value="${escAttr(c.price)}">
+          </div>
+          <button class="custom-x" data-cremove="${ci}" data-id="${b.id}">✕</button>
+        </div>`).join('')}
+        <div class="card-actions">
+          <button class="btn btn-small btn-ghost check-single" data-id="${b.id}">Best size for this beer</button>
+          <button class="btn btn-small btn-ghost add-size" data-id="${b.id}">+ size</button>
+        </div>
+        <div class="single-result" id="single-${b.id}"></div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('input[data-field]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const b = beers.find(x=>x.id===inp.dataset.id);
+        if(b) b[inp.dataset.field] = inp.value;
+        saveState();
+        refreshSingle(inp.dataset.id);
+      });
+    });
+    list.querySelectorAll('input[data-cfield]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const b = beers.find(x=>x.id===inp.dataset.id);
+        const c = b && b.customs[+inp.dataset.cidx];
+        if(c) c[inp.dataset.cfield] = inp.value;
+        saveState();
+        refreshSingle(inp.dataset.id);
+      });
+    });
+    list.querySelectorAll('[data-cremove]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const b = beers.find(x=>x.id===btn.dataset.id);
+        if(b){ b.customs.splice(+btn.dataset.cremove, 1); renderFinder(); saveState(); }
+      });
+    });
+    list.querySelectorAll('.add-size').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const b = beers.find(x=>x.id===btn.dataset.id);
+        if(b){ b.customs.push({ml:'', price:''}); renderFinder(); saveState(); }
+      });
+    });
+    list.querySelectorAll('[data-remove]').forEach(btn=>{
+      btn.addEventListener('click', ()=> removeBeer(btn.dataset.remove));
+    });
+    list.querySelectorAll('.check-single').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.dataset.id;
+        const div = $('single-'+id);
+        const willShow = div.style.display !== 'block';
+        div.style.display = willShow ? 'block' : 'none';
+        if(willShow) checkSingle(id);
+      });
+    });
+  }
+
+  function refreshSingle(id){
+    const div = $('single-'+id);
+    if(div && div.style.display==='block') checkSingle(id);
+  }
+
+  function beerEntries(b){
+    const entries = SIZES.map(s=>({label:s.label, price:parseFloat(b[s.key]), ml:s.ml}));
+    (b.customs||[]).forEach(c=>{
+      const ml = parseFloat(c.ml);
+      if(ml > 0) entries.push({label: ml+'ml', price:parseFloat(c.price), ml});
+    });
+    return entries;
+  }
+
+  function checkSingle(id){
+    const b = beers.find(x=>x.id===id);
+    if(!b) return;
+    renderRateList($('single-'+id), beerEntries(b), b.name);
+  }
+
+  $('add-beer').addEventListener('click', ()=> addBeer({name: 'Beer '+(beers.length+1)}));
+
+  $('find-best').addEventListener('click', ()=>{
+    const entries = [];
+    beers.forEach(b=>{
+      beerEntries(b).forEach(e=>{
+        if(!isNaN(e.price) && e.price>0){
+          entries.push({name: b.name || 'Beer', sizeLabel: e.label, price: e.price, ml: e.ml});
+        }
+      });
+    });
+    const container = $('finder-results');
+    if(entries.length===0){
+      container.innerHTML = '<div class="empty">Add at least one price first.</div>';
+      return;
+    }
+    entries.forEach(e=> e.rate = ratePerL(e.price, e.ml));
+    entries.sort((a,b)=>a.rate-b.rate);
+    const best = entries[0];
+    const secondBest = entries.find(e=> e.name!==best.name || e.sizeLabel!==best.sizeLabel);
+    let banner = `<div class="best-banner">
+      <div class="label">Best deal</div>
+      <div class="value">${escHtml(best.name)} — ${escHtml(best.sizeLabel)}</div>
+      <div class="sub">${fmt(best.price)} · ${fmt(best.rate)}/L`;
+    if(secondBest){
+      const pct = Math.round(((secondBest.rate-best.rate)/best.rate)*100);
+      banner += ` · ${pct}% cheaper than next best`;
+    }
+    banner += `</div><button class="btn btn-small btn-ghost share-btn" id="share-best">${ICON_SHARE}Tell a mate</button></div>`;
+
+    let table = `<table><thead><tr><th>Beer</th><th>Size</th><th>Price</th><th>$/L</th></tr></thead><tbody>`;
+    entries.forEach(e=>{
+      table += `<tr><td>${escHtml(e.name)}</td><td>${escHtml(e.sizeLabel)}</td><td>${fmt(e.price)}</td><td>${fmt(e.rate)}</td></tr>`;
+    });
+    table += `</tbody></table>`;
+
+    container.innerHTML = banner + table;
+    $('share-best').addEventListener('click', ()=>
+      shareText(buildShareMsg(best.name, {label:best.sizeLabel, price:best.price, rate:best.rate})));
+  });
+
+  // ---------- Method sub-tabs ----------
+  document.querySelectorAll('.method-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.method-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      $('method-'+btn.dataset.method).classList.add('active');
+      $('parse-status').textContent = '';
+      // start downloading the scanner as soon as Photo is opened, so it's ready by photo time
+      if(btn.dataset.method === 'photo') ensureTesseract().catch(()=>{});
+    });
+  });
+
+  // ================= PARSER =================
+  const SIZE_WORDS = 'half[\\s-]?pint|middy|pot|schooner|pint|jug';
+  const TOKEN_RE = new RegExp('\\b(' + SIZE_WORDS + '|\\d{3,4}\\s*ml)\\b', 'gi');
+  const INLINE_RE = new RegExp('\\b(' + SIZE_WORDS + '|\\d{3,4}\\s*ml)\\b[^\\d$\\n]{0,20}\\$?\\s*(\\d{1,3}(?:\\.\\d{1,2})?)', 'gi');
+
+  function normalizeOcr(t){
+    return t
+      .replace(/(^|[\s(|])S(?=\d)/gm, '$1$')          // OCR often reads $ as S
+      .replace(/(\d),(\d{2})\b/g, '$1.$2')            // 9,50 -> 9.50
+      .replace(/[|]{2,}/g, ' ');
+  }
+
+  // token -> {key:'pot'|'schooner'|'pint'|'jug'} or {ml:425} for a custom size
+  function tokenToCol(tok){
+    const t = tok.toLowerCase().trim();
+    const mlMatch = /^(\d{3,4})\s*ml$/.exec(t);
+    if(mlMatch){
+      const ml = parseInt(mlMatch[1], 10);
+      const std = SIZES.find(s=>s.ml===ml);
+      return std ? {key: std.key} : {ml: ml};
+    }
+    if(t.indexOf('half') === 0 || t === 'middy' || t === 'pot') return {key:'pot'};
+    return {key: t};
+  }
+
+  // numeric price candidates in a line, excluding ml figures, percentages, long numbers
+  function extractNumbers(line){
+    const out = [];
+    const re = /\$?\s*(\d{1,3}(?:\.\d{1,2})?)/g;
+    let m;
+    while((m = re.exec(line))){
+      const end = m.index + m[0].length;
+      const numStart = end - m[1].length;
+      const after = line.slice(end, end+4);
+      if(/^\s*ml/i.test(after)) continue;
+      if(/^[\d%]/.test(after)) continue;
+      const before = numStart > 0 ? line[numStart-1] : '';
+      if(m[0].indexOf('$') === -1 && /[\d.]/.test(before)) continue;
+      out.push({index: m.index, price: parseFloat(m[1])});
+    }
+    return out;
+  }
+
+  function applyCol(beer, col, price){
+    if(col.key){
+      if(beer[col.key]){
+        // size already filled (e.g. tap vs cans) — keep both, second becomes a custom entry
+        const std = SIZES.find(s=>s.key===col.key);
+        beer.customs.push({ml: String(std.ml), price: String(price)});
+      } else {
+        beer[col.key] = String(price);
+      }
+    } else {
+      beer.customs.push({ml: String(col.ml), price: String(price)});
+    }
+  }
+
+  function newBeer(name){
+    return {name: name, pot:'', schooner:'', pint:'', jug:'', customs:[]};
+  }
+  function hasAnyPrice(b){
+    return SIZES.some(s=>b[s.key]) || (b.customs && b.customs.length > 0);
+  }
+
+  function parseMenuText(raw){
+    const text = normalizeOcr(raw);
+    const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    let list = [];
+    let current = null;
+    let columns = null;   // active column layout from a header row
+
+    for(const line of lines){
+      // 1) inline "size ... price" pairs on this line
+      INLINE_RE.lastIndex = 0;
+      const inline = [...line.matchAll(INLINE_RE)].filter(m=> validPrice(parseFloat(m[2])));
+      if(inline.length > 0){
+        const prefix = line.slice(0, inline[0].index).replace(/[-:|•*($]+\s*$/,'').trim();
+        if(prefix && prefix.length > 1 && prefix.length < 60 && !/^\d/.test(prefix) && prefix.indexOf('%') === -1){
+          current = newBeer(prefix);
+          list.push(current);
+        } else if(!current){
+          current = newBeer('Beer ' + (list.length+1));
+          list.push(current);
+        }
+        for(const m of inline) applyCol(current, tokenToCol(m[1]), parseFloat(m[2]));
+        continue;
+      }
+
+      TOKEN_RE.lastIndex = 0;
+      const tokens = [...line.matchAll(TOKEN_RE)];
+      const nums = extractNumbers(line).filter(n=> validPrice(n.price));
+
+      // 2) header row: ≥2 size names, no prices -> defines column order
+      if(tokens.length >= 2 && nums.length === 0){
+        columns = tokens.map(m=> tokenToCol(m[1]));
+        continue;
+      }
+
+      // 3) data row under a header: "Beer name  9  12.5  28"
+      if(columns && nums.length > 0){
+        const name = line.slice(0, nums[0].index).replace(/[-:|•*.$\s]+$/,'').trim();
+        if(name.length > 1 && name.length < 60){
+          const b = newBeer(name);
+          nums.slice(0, columns.length).forEach((n,i)=> applyCol(b, columns[i], n.price));
+          if(hasAnyPrice(b)){ list.push(b); current = b; }
+          continue;
+        }
+      }
+
+      // 4) plain name line -> next prices belong to it
+      if(nums.length === 0 && line.length > 1 && line.length < 60 && !/^\$/.test(line)){
+        current = newBeer(line);
+        list.push(current);
+      }
+    }
+    return list.filter(hasAnyPrice);
+  }
+  // ================ END PARSER ================
+
+  function applyParsed(parsed, sourceLabel){
+    const status = $('parse-status');
+    if(!parsed || parsed.length===0){
+      status.textContent = `Couldn't find beer prices ${sourceLabel}. Try Photo or Paste text instead, or add beers manually below.`;
+      return false;
+    }
+    parsed.forEach(p=> addBeer(p));
+    status.textContent = `Found ${parsed.length} beer${parsed.length>1?'s':''} ${sourceLabel}. Review & edit below.`;
+    return true;
+  }
+
+  // ---------- Method: Paste text ----------
+  $('parse-btn').addEventListener('click', ()=>{
+    const text = $('paste-input').value;
+    applyParsed(parseMenuText(text), 'in that text');
+  });
+
+  // ---------- Method: Photo OCR ----------
+  const TESS_CDNS = [
+    'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
+    'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js'
+  ];
+
+  function loadScript(src, ms){
+    return new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      const t = setTimeout(()=>{ s.remove(); reject(new Error('timeout')); }, ms);
+      s.onload = ()=>{ clearTimeout(t); resolve(); };
+      s.onerror = ()=>{ clearTimeout(t); s.remove(); reject(new Error('error')); };
+      s.src = src;
+      document.head.appendChild(s);
+    });
+  }
+
+  let tessPromise = null;
+  function ensureTesseract(){
+    if(window.Tesseract) return Promise.resolve();
+    if(tessPromise) return tessPromise;
+    tessPromise = (async ()=>{
+      for(const src of TESS_CDNS){
+        try{
+          await loadScript(src, 20000);
+          if(window.Tesseract) return;
+        }catch(e){}
+      }
+      tessPromise = null;
+      throw new Error('scanner-load-failed');
+    })();
+    return tessPromise;
+  }
+
+  function withTimeout(promise, ms, msg){
+    return Promise.race([
+      promise,
+      new Promise((_, rej)=> setTimeout(()=> rej(new Error(msg)), ms))
+    ]);
+  }
+
+  // downscale + grayscale + contrast-stretch: smaller, sharper input = faster, far more reliable OCR
+  async function prepImage(file){
+    const url = URL.createObjectURL(file);
+    try{
+      const img = await new Promise((resolve, reject)=>{
+        const i = new Image();
+        i.onload = ()=> resolve(i);
+        i.onerror = ()=> reject(new Error('image-decode'));
+        i.src = url;
+      });
+      const maxDim = 1800;
+      const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.max(1, Math.round(img.naturalWidth * scale));
+      const h = Math.max(1, Math.round(img.naturalHeight * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const d = ctx.getImageData(0, 0, w, h);
+      const px = d.data;
+      const hist = new Uint32Array(256);
+      for(let i=0; i<px.length; i+=4){
+        const g = (px[i]*0.299 + px[i+1]*0.587 + px[i+2]*0.114) | 0;
+        px[i] = px[i+1] = px[i+2] = g;
+        hist[g]++;
+      }
+      const total = w*h;
+      let lo = 0, hi = 255, acc = 0;
+      for(let i=0; i<256; i++){ acc += hist[i]; if(acc >= total*0.02){ lo = i; break; } }
+      acc = 0;
+      for(let i=255; i>=0; i--){ acc += hist[i]; if(acc >= total*0.02){ hi = i; break; } }
+      const range = Math.max(1, hi - lo);
+      for(let i=0; i<px.length; i+=4){
+        let v = ((px[i] - lo) * 255 / range) | 0;
+        if(v < 0) v = 0; else if(v > 255) v = 255;
+        px[i] = px[i+1] = px[i+2] = v;
+      }
+      ctx.putImageData(d, 0, 0);
+      return canvas;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  $('photo-input').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const status = $('ocr-status');
+    const preview = $('photo-preview');
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+    try{
+      status.innerHTML = '<span class="spinner"></span>Preparing photo…';
+      let input;
+      try{ input = await prepImage(file); }
+      catch(prepErr){ input = file; }  // fall back to the raw file if canvas fails
+
+      status.innerHTML = '<span class="spinner"></span>Loading scanner (first time can take 20–30s)…';
+      await withTimeout(ensureTesseract(), 45000, 'scanner-load-timeout');
+
+      const result = await withTimeout(
+        Tesseract.recognize(input, 'eng', {
+          logger: (m)=>{
+            if(m.status === 'recognizing text'){
+              status.innerHTML = `<span class="spinner"></span>Reading photo… ${Math.round((m.progress||0)*100)}%`;
+            } else if(m.status){
+              status.innerHTML = `<span class="spinner"></span>${escHtml(m.status)}…`;
+            }
+          }
+        }),
+        120000, 'ocr-timeout'
+      );
+
+      const text = (result && result.data && result.data.text) || '';
+      const parsed = parseMenuText(text);
+      if(applyParsed(parsed, 'in that photo')){
+        status.textContent = 'Photo scanned ✓';
+      } else {
+        // no beers found — hand the raw text to the user instead of a dead end
+        $('paste-input').value = text.trim();
+        document.querySelector('[data-method="text"]').click();
+        $('parse-status').textContent = "Couldn't spot beer prices automatically — I've put everything I could read into Paste text. Tidy it up and tap Parse text.";
+      }
+    }catch(err){
+      const msg = String((err && err.message) || err);
+      if(msg.indexOf('load') !== -1){
+        status.textContent = navigator.onLine === false
+          ? "You're offline — the first scan needs internet to download the reader. Connect and try again."
+          : "Couldn't download the scanner. If you're viewing this as a file preview (from AirDrop, Files or an email attachment), previews block downloads — open the file in Safari and use Share → Add to Home Screen, then try from there.";
+      } else if(msg.indexOf('timeout') !== -1){
+        status.textContent = 'Scanning took too long — try again with a smaller or clearer photo.';
+      } else {
+        status.textContent = 'Could not scan that photo. Try better lighting or a straight-on shot, or use Paste text.';
+      }
+    } finally {
+      e.target.value = '';  // allow re-selecting the same photo
+    }
+  });
+
+  // ---------- Persistence ----------
+  function saveState(){
+    try{
+      const quick = {};
+      QUICK_SIZES.forEach(s=> quick[s.key] = $('q-'+s.key).value);
+      localStorage.setItem('beerValueState', JSON.stringify({
+        docked: tabbar.classList.contains('docked'),
+        tab: currentTab,
+        quick,
+        beers
+      }));
+    }catch(e){}
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem('beerValueState');
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  // ---------- Init ----------
+  const state = loadState();
+  if(state){
+    if(state.quick){
+      QUICK_SIZES.forEach(s=>{ $('q-'+s.key).value = state.quick[s.key] || ''; });
+    }
+    if(Array.isArray(state.beers) && state.beers.length){
+      beers = state.beers.map(b=> Object.assign(
+        {id:'b'+(idCounter++), name:'', pot:'', schooner:'', pint:'', jug:'', customs:[]}, b));
+      beers.forEach(b=>{ if(!Array.isArray(b.customs)) b.customs = []; });
+    }
+  }
+  renderFinder();
+  updateQuick();
+  if(state && state.docked && state.tab){
+    dock(state.tab);
+  }
+})();
+</script>
+</body>
+</html>
