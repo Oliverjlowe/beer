@@ -18,29 +18,50 @@
     --text:#f3ead9; --text-dim:#b4a68c; --green:#6fbf73; --red:#e06a5a; --border:#3a2f1c;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+  html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif; overflow-x:hidden;}
-  body{overscroll-behavior:none;}
-  body.docked{padding-bottom:78px;}
+  html{height:-webkit-fill-available;}
+  body{overscroll-behavior:none; min-height:100dvh;}
+  body.docked{padding-bottom:calc(78px + env(safe-area-inset-bottom));}
 
   header{position:sticky; top:0; z-index:10; background:linear-gradient(180deg,var(--bg) 80%,transparent);
-    padding:16px 16px 6px; text-align:center; cursor:pointer;}
+    padding:calc(16px + env(safe-area-inset-top)) 16px 6px; text-align:center; cursor:pointer;}
   header h1{margin:0; font-size:22px; letter-spacing:0.5px;}
   header h1 span{color:var(--gold);}
   header p{margin:2px 0 0; font-size:12px; color:var(--text-dim);}
 
   /* ---------- Landing ---------- */
   .landing-wrap{
-    position:fixed; left:0; right:0; top:calc(46% - 160px); text-align:center; z-index:5;
+    position:fixed; left:0; right:0; top:calc(55% - 160px); text-align:center; z-index:5;
     transition:opacity .35s ease, transform .35s ease; pointer-events:none;
   }
   .landing-wrap p{font-size:14px; color:var(--text-dim); margin:0;}
   .landing-wrap.visible{opacity:1; transform:translateY(0);}
   .landing-wrap.hidden{opacity:0; transform:translateY(10px);}
 
+  .pub-bar{
+    position:fixed; left:0; right:0; top:calc(55% + 138px); z-index:6;
+    display:flex; justify-content:center; align-items:center; gap:8px;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .pub-bar.hidden{opacity:0; transform:translateY(10px); pointer-events:none;}
+  .pub-bar .pin{font-size:16px;}
+  .pub-bar select{
+    max-width:72%; background:var(--card); color:var(--text); border:1px solid var(--border);
+    border-radius:12px; padding:9px 12px; font-size:14px; font-family:inherit;
+    -webkit-appearance:none; appearance:none; text-align:center;
+  }
+
+  .landing-quote{
+    position:fixed; left:24px; right:24px; top:calc(55% + 192px); z-index:5; margin:0;
+    text-align:center; font-size:13px; font-style:italic; color:var(--text-dim); line-height:1.5;
+    transition:opacity .35s ease, transform .35s ease; pointer-events:none;
+  }
+  .landing-quote.hidden{opacity:0; transform:translateY(10px);}
+
   nav.tabbar{
     position:fixed; z-index:20; display:flex; flex-wrap:wrap; justify-content:center; gap:14px; width:262px;
-    left:50%; top:46%; transform:translate(-50%,-50%);
+    left:50%; top:55%; transform:translate(-50%,-50%);
     transition:top .5s cubic-bezier(.22,1,.36,1), left .5s cubic-bezier(.22,1,.36,1),
                right .5s cubic-bezier(.22,1,.36,1), bottom .5s cubic-bezier(.22,1,.36,1),
                transform .5s cubic-bezier(.22,1,.36,1), padding .5s ease, gap .5s ease,
@@ -157,13 +178,13 @@
     background:radial-gradient(120% 80% at 50% 42%, transparent 55%, rgba(0,0,0,.5) 100%);
   }
   .intro-byline{
-    position:absolute; bottom:11.5%; left:0; right:0;
+    position:absolute; bottom:calc(11.5% + env(safe-area-inset-bottom)); left:0; right:0;
     display:flex; justify-content:center; pointer-events:none; opacity:0;
   }
   #intro.ready .intro-byline{animation:bylineIn 1s ease-out 4.8s both;}
   .intro-byline span{font-weight:600; font-size:15px; letter-spacing:1.5px; color:rgba(255,225,170,.85);}
   .intro-dots{
-    position:absolute; bottom:5%; left:0; right:0;
+    position:absolute; bottom:calc(5% + env(safe-area-inset-bottom)); left:0; right:0;
     display:flex; justify-content:center; gap:9px; pointer-events:none;
   }
   .intro-dots span{width:7px; height:7px; border-radius:50%; background:#f2a71c; animation:dotPulse 1.2s ease-in-out infinite;}
@@ -209,6 +230,13 @@
 <div class="landing-wrap visible" id="landing-wrap">
   <p>What do you want to do?</p>
 </div>
+
+<div class="pub-bar" id="pub-bar">
+  <span class="pin">📍</span>
+  <select id="pub-select" aria-label="Your pub"><option value="">Finding your pub…</option></select>
+</div>
+
+<p class="landing-quote" id="landing-quote"></p>
 
 <nav class="tabbar" id="tabbar">
   <button data-tab="quick"><span class="icon">🍺</span>Quick Check</button>
@@ -697,25 +725,55 @@ Jug $28.00"></textarea>
 })();
 </script>
 <script>
-/* Intro splash controller: play (~5.8s) -> hold 1s -> fade to landing. Skips instantly if 3D can't load. */
+/* Intro splash controller: play (~5.8s) -> hold 1s -> fade to landing. Skips instantly if 3D can't load.
+   Replays on every reopen: iOS keeps home-screen apps alive, so we watch visibility instead of page loads. */
 (function(){
   var intro = document.getElementById('intro');
   if(!intro) return;
   var scene = intro.querySelector('beer-scene');
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var sceneReady = false;
   var done = false;
+  var dismissTimer = null;
+  var hiddenAt = 0;
   function dismiss(){
     if(done) return; done = true;
     intro.classList.add('out');
-    setTimeout(function(){ intro.remove(); }, 700);
+    setTimeout(function(){ if(done) intro.style.display = 'none'; }, 700);
   }
-  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches){ intro.remove(); return; }
-  var guard = setTimeout(dismiss, 4000);   // offline / no WebGL / slow: skip straight to the app
-  scene.addEventListener('ready', function(){
-    clearTimeout(guard);
-    intro.classList.add('ready');          // syncs the byline fade to scene start
-    setTimeout(dismiss, 6800);             // full timeline ~5.8s + 1s hold
+  if(reduced){
+    intro.style.display = 'none';
+    done = true;
+  } else {
+    var guard = setTimeout(dismiss, 4000);   // offline / no WebGL / slow: skip straight to the app
+    scene.addEventListener('ready', function(){
+      sceneReady = true;
+      clearTimeout(guard);
+      intro.classList.add('ready');          // syncs the byline fade to scene start
+      dismissTimer = setTimeout(dismiss, 6800); // full timeline ~5.8s + 1s hold
+    });
+    scene.addEventListener('failed', dismiss);
+  }
+  function replayIntro(){
+    if(!sceneReady || reduced) return;
+    done = false;
+    clearTimeout(dismissTimer);
+    intro.style.display = '';
+    intro.classList.remove('out');
+    intro.classList.remove('ready');
+    void intro.offsetWidth;                  // force reflow so the byline animation restarts
+    intro.classList.add('ready');
+    scene.replay();
+    dismissTimer = setTimeout(dismiss, 6800);
+    window.dispatchEvent(new CustomEvent('app-resumed'));
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden'){
+      hiddenAt = Date.now();
+    } else if(hiddenAt && (Date.now() - hiddenAt) > 60000){
+      replayIntro();                         // away >1 min = a fresh open, pour another
+    }
   });
-  scene.addEventListener('failed', dismiss);
 })();
 </script>
 <script>
@@ -750,6 +808,8 @@ Jug $28.00"></textarea>
     document.body.classList.add('docked');
     landingWrap.classList.remove('visible');
     landingWrap.classList.add('hidden');
+    $('pub-bar').classList.add('hidden');
+    $('landing-quote').classList.add('hidden');
     activateTab(name);
     main.classList.add('show');
     saveState();
@@ -760,6 +820,8 @@ Jug $28.00"></textarea>
     document.body.classList.remove('docked');
     landingWrap.classList.remove('hidden');
     landingWrap.classList.add('visible');
+    $('pub-bar').classList.remove('hidden');
+    $('landing-quote').classList.remove('hidden');
     main.classList.remove('show');
     currentTab = null;
     tabbar.querySelectorAll('button').forEach(b=> b.classList.remove('active'));
@@ -792,13 +854,12 @@ Jug $28.00"></textarea>
     if(v && v.trim()){ savePub(v.trim()); return v.trim(); }
     return null;
   }
-  async function overpassPub(lat, lon){
-    const q = '[out:json][timeout:8];(node(around:160,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten|restaurant)$"];way(around:160,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten|restaurant)$"];);out center 8;';
+  async function overpassPubs(lat, lon){
+    const q = '[out:json][timeout:8];(node(around:300,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten|restaurant)$"];way(around:300,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten|restaurant)$"];);out center 15;';
     const res = await withTimeout(fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)}), 9000, 'geo-timeout');
-    if(!res.ok) return null;
+    if(!res.ok) return [];
     const j = await res.json();
     const els = (j.elements||[]).filter(e=> e.tags && e.tags.name);
-    if(!els.length) return null;
     const dist = (e)=>{
       const la = e.lat !== undefined ? e.lat : (e.center && e.center.lat);
       const lo = e.lon !== undefined ? e.lon : (e.center && e.center.lon);
@@ -808,7 +869,9 @@ Jug $28.00"></textarea>
     };
     const pri = (e)=> /pub|bar|biergarten/.test(e.tags.amenity||'') ? 0 : 1;
     els.sort((a,b)=> (pri(a) - pri(b)) || (dist(a) - dist(b)));
-    return els[0].tags.name;
+    const names = [];
+    els.forEach(e=>{ if(names.indexOf(e.tags.name) === -1) names.push(e.tags.name); });
+    return names.slice(0, 8);
   }
   async function nominatimPub(lat, lon){
     const res = await withTimeout(fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat='+lat+'&lon='+lon), 9000, 'geo-timeout');
@@ -816,22 +879,116 @@ Jug $28.00"></textarea>
     const j = await res.json();
     return j.name || ((j.display_name||'').split(',')[0] || null);
   }
+  // share uses whatever the landing-screen picker resolved — instant, no GPS wait
   async function getPubName(){
     const c = cachedPub();
-    if(c && (Date.now() - c.ts) < 30*60*1000) return c.name;
-    if(!navigator.geolocation) return askPub();
+    if(c) return c.name;
+    return askPub();
+  }
+
+  // ---------- landing-screen pub picker: locate on open, dropdown of nearby pubs ----------
+  function setPubOptions(names, current){
+    const sel = $('pub-select');
+    let opts = names.map(n=> `<option value="${escAttr(n)}"${n===current?' selected':''}>${escHtml(n)}</option>`).join('');
+    if(!names.length) opts = '<option value="" selected>Set your pub…</option>';
+    opts += '<option value="__other">Somewhere else…</option>';
+    sel.innerHTML = opts;
+  }
+  async function initPubs(){
+    const c = cachedPub();
+    if(c) setPubOptions([c.name], c.name);
+    if(!navigator.geolocation){ if(!c) setPubOptions([], null); return; }
     let pos;
     try{
-      pos = await new Promise((resolve, reject)=> navigator.geolocation.getCurrentPosition(resolve, reject, {timeout: 8000, maximumAge: 300000}));
-    }catch(e){ return askPub(); }
+      pos = await new Promise((resolve, reject)=> navigator.geolocation.getCurrentPosition(resolve, reject, {timeout: 10000, maximumAge: 120000}));
+    }catch(e){ if(!c) setPubOptions([], null); return; }
     const lat = pos.coords.latitude, lon = pos.coords.longitude;
-    let name = null;
-    try{ name = await overpassPub(lat, lon); }catch(e){}
-    if(!name){ try{ name = await nominatimPub(lat, lon); }catch(e){} }
-    if(!name) return askPub();
-    savePub(name);
-    return name;
+    let names = [];
+    try{ names = await overpassPubs(lat, lon); }catch(e){}
+    if(!names.length){
+      try{ const n = await nominatimPub(lat, lon); if(n) names = [n]; }catch(e){}
+    }
+    if(names.length){
+      const cur = (c && names.indexOf(c.name) !== -1) ? c.name : names[0];
+      setPubOptions(names, cur);
+      savePub(cur);
+    } else if(!c){
+      setPubOptions([], null);
+    }
   }
+  // ---------- landing quote, randomised every open ----------
+  const QUOTES = [
+    "You can't buy happiness, but you can buy beer, and that's pretty close.",
+    "To beer or not to beer, that is the question.",
+    "Life is brew-tiful with a beer in hand.",
+    "I'm in a good place right now. Not emotionally, just sitting at the bar with my beer.",
+    "Beauty is in the eye of the beer holder.",
+    "Beer me up, Scotty!",
+    "Alcohol you later, I'm off to drink beer.",
+    "Beer: helping ugly idiots have sex since 1862.",
+    "I make beer disappear. What's your superpower?",
+    "Beer is not a breakfast drink; it can be enjoyed at any time.",
+    "Beer: because sometimes wine just won't cut it.",
+    "Beer makes you feel the way you ought to feel without beer.",
+    "The best beers are the ones we drink with friends.",
+    "There's always time for another round.",
+    "In dog beers, I've only had one.",
+    "A balanced diet is a beer in each hand.",
+    "Work is the curse of the drinking class.",
+    "Beer: because adulting is hard.",
+    "It's a beer-thirty kind of day.",
+    "All you need is love…and maybe a cold beer.",
+    "Save water, get drunk on beer (in moderation), and don't lose your temper.",
+    "Without beer, life would be a mistake.",
+    "Beer: the cause of, and solution to, all of life's problems.",
+    "The answer may not lie at the bottom of a bottle of beer, but you should at least check.",
+    "Time flies when you're having a beer.",
+    "Sip happens.",
+    "Beer: the best part of any day.",
+    "Drink beer, it's your civic duty.",
+    "Keep calm and beer on.",
+    "This beer tastes a lot like I'm not going to work tomorrow.",
+    "I brew, therefore I am.",
+    "Beer: because no great story started with someone eating a salad.",
+    "Beer me!",
+    "Beer: the breakfast of champions.",
+    "When good people drink good beer it makes for a beautiful afternoon.",
+    "Beer: the original social network.",
+    "Sip, sip, hooray!",
+    "Beer; It's liquid therapy.",
+    "Save the earth, it's the only planet with beer.",
+    "In the taste of beer we trust.",
+    "Beer: a friend with every pint.",
+    "Another beer? You bet!",
+    "Life is short, drink Champagne and good beer.",
+    "Will work for beer.",
+    "Beer: the ultimate relaxer.",
+    "Beer today, gone tomorrow.",
+    "Take a pitcher, it'll last longer.",
+    "All you need is beer.",
+    "Beer: the answer to all life's questions.",
+    "Brew it and they will come."
+  ];
+  function newQuote(){
+    $('landing-quote').textContent = '“' + QUOTES[Math.floor(Math.random() * QUOTES.length)] + '”';
+  }
+
+  $('pub-select').addEventListener('change', ()=>{
+    const sel = $('pub-select');
+    if(sel.value === '__other' || sel.value === ''){
+      const v = askPub();
+      if(v){
+        const others = Array.prototype.map.call(sel.options, o=> o.value)
+          .filter(x=> x && x !== '__other' && x !== v);
+        setPubOptions([v].concat(others), v);
+      } else {
+        const c = cachedPub();
+        if(c) sel.value = c.name;
+      }
+    } else {
+      savePub(sel.value);
+    }
+  });
   async function shareBeer(name, e, btn){
     let pub = null;
     const orig = btn ? btn.innerHTML : '';
@@ -1552,9 +1709,11 @@ Jug $28.00"></textarea>
   renderFinder();
   renderShouts();
   updateQuick();
-  if(state && state.docked && state.tab){
-    dock(state.tab);
-  }
+  initPubs();
+  newQuote();
+  // fired by the intro controller when the app is reopened after being backgrounded:
+  // back to the landing screen + re-detect the pub + fresh quote
+  window.addEventListener('app-resumed', ()=>{ undock(); initPubs(); newQuote(); });
 })();
 </script>
 </body>
