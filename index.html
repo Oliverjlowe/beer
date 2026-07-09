@@ -1427,8 +1427,9 @@ Jug $28.00"></textarea>
       const r = await withTimeout(fetch(base + 'eventsnextleague.php?id=' + id), 10000, 'games-timeout');
       if(r.ok) future = fresh((await r.json()).events);
     }catch(e){}
-    if(future.length < 3){
-      // "next events" data can lag — fall back to the full season draw and filter to future games
+    const coversWeek = future.length && Math.max.apply(null, future.map(parseTs)) > now + 7*24*3600*1000;
+    if(future.length < 3 || !coversWeek){
+      // "next events" data can lag or be too short — fall back to the full season draw for the whole week
       try{
         const r = await withTimeout(fetch(base + 'eventsseason.php?id=' + id + '&s=' + new Date().getFullYear()), 15000, 'games-timeout');
         if(r.ok){
@@ -1447,7 +1448,11 @@ Jug $28.00"></textarea>
   }
   function renderGames(){
     const list = $('games-list');
-    const shown = games.filter(g=> leagueFilter === 'all' || g.league === leagueFilter).slice(0, 40);
+    const filtered = games.filter(g=> leagueFilter === 'all' || g.league === leagueFilter);
+    // everything in the next 7 days; if a league's on a break, show whatever's next instead
+    const weekEnd = Date.now() + 7*24*3600*1000;
+    let shown = filtered.filter(g=> g.t <= weekEnd);
+    if(!shown.length) shown = filtered.slice(0, 10);
     if(!shown.length){
       list.innerHTML = '<div class="empty">No upcoming games loaded — tap Refresh draw.</div>';
       return;
