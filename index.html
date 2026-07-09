@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600&display=swap" rel="stylesheet">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23151008'/%3E%3Cpath d='M32 28h32v48H32z' fill='none' stroke='%23e0a940' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M64 40h7a8 8 0 0 1 8 8v8a8 8 0 0 1-8 8h-7' fill='none' stroke='%23e0a940' stroke-width='5'/%3E%3Cpath d='M32 40h32' fill='none' stroke='%23e0a940' stroke-width='5'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23151008'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8D%BA%3C/text%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#151008; --card:#211a10; --card2:#2a2114; --gold:#e0a940; --gold-dim:#8a6a2a;
@@ -31,7 +31,7 @@
 
   /* ---------- Landing ---------- */
   .landing-wrap{
-    position:fixed; left:0; right:0; top:32%; text-align:center; z-index:5;
+    position:fixed; left:0; right:0; top:calc(46% - 160px); text-align:center; z-index:5;
     transition:opacity .35s ease, transform .35s ease; pointer-events:none;
   }
   .landing-wrap p{font-size:14px; color:var(--text-dim); margin:0;}
@@ -39,7 +39,7 @@
   .landing-wrap.hidden{opacity:0; transform:translateY(10px);}
 
   nav.tabbar{
-    position:fixed; z-index:20; display:flex; gap:22px;
+    position:fixed; z-index:20; display:flex; flex-wrap:wrap; justify-content:center; gap:14px; width:262px;
     left:50%; top:46%; transform:translate(-50%,-50%);
     transition:top .5s cubic-bezier(.22,1,.36,1), left .5s cubic-bezier(.22,1,.36,1),
                right .5s cubic-bezier(.22,1,.36,1), bottom .5s cubic-bezier(.22,1,.36,1),
@@ -47,19 +47,19 @@
                background-color .4s ease, border-color .4s ease;
   }
   nav.tabbar.docked{
-    left:0; right:0; bottom:0; top:auto; transform:none; gap:0;
+    left:0; right:0; bottom:0; top:auto; transform:none; gap:0; width:auto; flex-wrap:nowrap;
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));
     background:rgba(21,16,8,0.97); border-top:1px solid var(--border);
     backdrop-filter:blur(10px);
   }
   nav.tabbar button{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
-    width:132px; height:132px; border-radius:26px; background:var(--card); border:1px solid var(--border);
-    color:var(--text); font-size:15px; font-weight:600; box-shadow:0 10px 26px rgba(0,0,0,.4);
+    width:118px; height:112px; border-radius:24px; background:var(--card); border:1px solid var(--border);
+    color:var(--text); font-size:14px; font-weight:600; box-shadow:0 10px 26px rgba(0,0,0,.4);
     transition:all .5s cubic-bezier(.22,1,.36,1), transform .25s cubic-bezier(.32,.72,0,1);
   }
   nav.tabbar:not(.docked) button:active{transform:scale(.94);}
-  nav.tabbar button .icon{font-size:50px; transition:font-size .5s cubic-bezier(.22,1,.36,1), color .3s ease; line-height:1;}
+  nav.tabbar button .icon{font-size:38px; transition:font-size .5s cubic-bezier(.22,1,.36,1), color .3s ease; line-height:1;}
   nav.tabbar:not(.docked) button .icon{color:var(--gold);}
   .icon svg{width:1em; height:1em; display:block;}
   nav.tabbar.docked button{
@@ -202,7 +202,7 @@
 </div>
 
 <header id="home-btn">
-  <h1>Beer <span>Value</span></h1>
+  <h1>🍺 Beer <span>Value</span></h1>
   <p>Schooner 375 · Pint 550 · Jug 1125 ml</p>
 </header>
 
@@ -211,8 +211,10 @@
 </div>
 
 <nav class="tabbar" id="tabbar">
-  <button data-tab="quick"><span class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l-1.1 18H8.1L7 3z"/><path d="M7.4 8.5h9.2"/></svg></span>Quick Check</button>
-  <button data-tab="paste"><span class="icon"><svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg></span>Paste Menu</button>
+  <button data-tab="quick"><span class="icon">🍺</span>Quick Check</button>
+  <button data-tab="paste"><span class="icon">🍻</span>Paste Menu</button>
+  <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
+  <button data-tab="games"><span class="icon">🏉</span>Games</button>
 </nav>
 
 <main id="main">
@@ -263,7 +265,7 @@ Jug $28.00"></textarea>
       </div>
 
       <div class="method-panel" id="method-photo">
-        <label for="photo-input" class="btn btn-primary" style="text-align:center;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="m9 7 1.1-2.2A1.5 1.5 0 0 1 11.4 4h1.2a1.5 1.5 0 0 1 1.3.8L15 7"/><circle cx="12" cy="13" r="3.5"/></svg>Take or choose photo</label>
+        <label for="photo-input" class="btn btn-primary" style="text-align:center;">📷 Take or choose photo</label>
         <input type="file" accept="image/*" id="photo-input">
         <img id="photo-preview" class="photo-preview" alt="">
         <p class="hint" id="ocr-status">Scans on your phone. First scan downloads the reader (~15&nbsp;MB), so it needs internet and can take 20–30s — after that it's fast. A straight-on, well-lit photo works best.</p>
@@ -274,8 +276,46 @@ Jug $28.00"></textarea>
 
     <div id="finder-list"></div>
     <button class="btn btn-ghost" id="add-beer" style="margin-bottom:12px;">+ Add beer manually</button>
-    <button class="btn btn-primary" id="find-best"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 5H5v1a3.5 3.5 0 0 0 3 3.5"/><path d="M16 5h3v1a3.5 3.5 0 0 1-3 3.5"/><path d="M12 13v6"/><path d="M9 19h6"/></svg>Find best deal (all beers)</button>
+    <button class="btn btn-primary" id="find-best">🏆 Find best deal (all beers)</button>
     <div id="finder-results" style="margin-top:14px;"></div>
+  </div>
+
+  <!-- SHOUTS -->
+  <div class="tab-panel" id="tab-shout">
+    <div class="best-banner" id="shout-banner" style="display:none;">
+      <div class="label">Next shout</div>
+      <div class="value" id="shout-who">—</div>
+      <div class="sub">time to get the round in 🍻</div>
+      <button class="btn btn-small btn-ghost share-btn" id="shout-done">✅ Round bought — who's next?</button>
+      <button class="btn btn-small btn-ghost share-btn" id="shout-share">📲 Remind them</button>
+    </div>
+    <div class="card">
+      <h2>The crew</h2>
+      <div class="row">
+        <div class="field"><input type="text" id="mate-input" placeholder="Add a mate"></div>
+        <button class="btn btn-small btn-ghost" id="mate-add" style="align-self:flex-end;">Add</button>
+      </div>
+      <div id="mate-list"></div>
+      <div class="card-actions">
+        <button class="btn btn-small btn-ghost" id="shout-shuffle">🔀 Shuffle order</button>
+        <button class="btn btn-small btn-ghost" id="shout-reset">Reset rounds</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAMES -->
+  <div class="tab-panel" id="tab-games">
+    <div class="card">
+      <h2>🏉 Upcoming games</h2>
+      <div class="method-tabs">
+        <button class="method-btn league-btn active" data-league="all">All</button>
+        <button class="method-btn league-btn" data-league="nrl">NRL</button>
+        <button class="method-btn league-btn" data-league="afl">AFL</button>
+      </div>
+      <p class="hint" id="games-status"></p>
+    </div>
+    <div id="games-list"></div>
+    <button class="btn btn-ghost" id="games-refresh" style="margin-top:12px;">🔄 Refresh draw</button>
   </div>
 
 </main>
@@ -691,7 +731,6 @@ Jug $28.00"></textarea>
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => '$' + n.toFixed(2);
   const validPrice = (p) => !isNaN(p) && p >= 2 && p <= 100;
-  const ICON_SHARE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M8 11H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>';
 
   // ---------- Landing -> Docked tab bar ----------
   const tabbar = $('tabbar');
@@ -703,6 +742,7 @@ Jug $28.00"></textarea>
     currentTab = name;
     tabbar.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
     document.querySelectorAll('.tab-panel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+name));
+    if(name === 'games') loadGames(false);
   }
 
   function dock(name){
@@ -743,10 +783,65 @@ Jug $28.00"></textarea>
   // ---------- Rate helpers & sharing ----------
   function ratePerL(price, ml){ return (price*1000)/ml; }
 
-  function buildShareMsg(name, e){
+  // ---------- pub locator (GPS -> OpenStreetMap venue name, cached 30 min) ----------
+  function savePub(name){ try{ localStorage.setItem('beerValuePub', JSON.stringify({name: name, ts: Date.now()})); }catch(e){} }
+  function cachedPub(){ try{ const p = JSON.parse(localStorage.getItem('beerValuePub')||'null'); return (p && p.name) ? p : null; }catch(e){ return null; } }
+  function askPub(){
+    const last = (cachedPub()||{}).name || '';
+    const v = window.prompt('Which pub are you at?', last);
+    if(v && v.trim()){ savePub(v.trim()); return v.trim(); }
+    return null;
+  }
+  async function overpassPub(lat, lon){
+    const q = '[out:json][timeout:8];(node(around:160,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten|restaurant)$"];way(around:160,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten|restaurant)$"];);out center 8;';
+    const res = await withTimeout(fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)}), 9000, 'geo-timeout');
+    if(!res.ok) return null;
+    const j = await res.json();
+    const els = (j.elements||[]).filter(e=> e.tags && e.tags.name);
+    if(!els.length) return null;
+    const dist = (e)=>{
+      const la = e.lat !== undefined ? e.lat : (e.center && e.center.lat);
+      const lo = e.lon !== undefined ? e.lon : (e.center && e.center.lon);
+      if(la === undefined) return 1e9;
+      const dx = (lo - lon) * Math.cos(lat * Math.PI/180), dy = la - lat;
+      return dx*dx + dy*dy;
+    };
+    const pri = (e)=> /pub|bar|biergarten/.test(e.tags.amenity||'') ? 0 : 1;
+    els.sort((a,b)=> (pri(a) - pri(b)) || (dist(a) - dist(b)));
+    return els[0].tags.name;
+  }
+  async function nominatimPub(lat, lon){
+    const res = await withTimeout(fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat='+lat+'&lon='+lon), 9000, 'geo-timeout');
+    if(!res.ok) return null;
+    const j = await res.json();
+    return j.name || ((j.display_name||'').split(',')[0] || null);
+  }
+  async function getPubName(){
+    const c = cachedPub();
+    if(c && (Date.now() - c.ts) < 30*60*1000) return c.name;
+    if(!navigator.geolocation) return askPub();
+    let pos;
+    try{
+      pos = await new Promise((resolve, reject)=> navigator.geolocation.getCurrentPosition(resolve, reject, {timeout: 8000, maximumAge: 300000}));
+    }catch(e){ return askPub(); }
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    let name = null;
+    try{ name = await overpassPub(lat, lon); }catch(e){}
+    if(!name){ try{ name = await nominatimPub(lat, lon); }catch(e){} }
+    if(!name) return askPub();
+    savePub(name);
+    return name;
+  }
+  async function shareBeer(name, e, btn){
+    let pub = null;
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.innerHTML = '<span class="spinner"></span>Finding pub…'; btn.disabled = true; }
+    try{ pub = await getPubName(); }
+    finally{ if(btn){ btn.innerHTML = orig; btn.disabled = false; } }
     const what = name ? 'a ' + name : 'a beer';
-    return "🍺 Beer o'clock! I'm on " + what + " — " + e.label + " for " + fmt(e.price) +
-           " (" + fmt(e.rate) + "/L, best value here). Come join!";
+    const at = pub ? ' at ' + pub : '';
+    shareText("🍺 Beer o'clock" + at + "! I'm on " + what + " — " + e.label + " for " + fmt(e.price) +
+              " (" + fmt(e.rate) + "/L, best value). Come join!");
   }
 
   async function shareText(msg){
@@ -777,8 +872,8 @@ Jug $28.00"></textarea>
     container.innerHTML = html;
     const btn = document.createElement('button');
     btn.className = 'btn btn-small btn-ghost share-btn';
-    btn.innerHTML = ICON_SHARE + 'Tell a mate';
-    btn.addEventListener('click', ()=> shareText(buildShareMsg(shareName, best)));
+    btn.innerHTML = '📲 Tell a mate';
+    btn.addEventListener('click', ()=> shareBeer(shareName, best, btn));
     container.appendChild(btn);
   }
 
@@ -941,7 +1036,7 @@ Jug $28.00"></textarea>
       const pct = Math.round(((secondBest.rate-best.rate)/best.rate)*100);
       banner += ` · ${pct}% cheaper than next best`;
     }
-    banner += `</div><button class="btn btn-small btn-ghost share-btn" id="share-best">${ICON_SHARE}Tell a mate</button></div>`;
+    banner += `</div><button class="btn btn-small btn-ghost share-btn" id="share-best">📲 Tell a mate</button></div>`;
 
     let table = `<table><thead><tr><th>Beer</th><th>Size</th><th>Price</th><th>$/L</th></tr></thead><tbody>`;
     entries.forEach(e=>{
@@ -950,12 +1045,12 @@ Jug $28.00"></textarea>
     table += `</tbody></table>`;
 
     container.innerHTML = banner + table;
-    $('share-best').addEventListener('click', ()=>
-      shareText(buildShareMsg(best.name, {label:best.sizeLabel, price:best.price, rate:best.rate})));
+    $('share-best').addEventListener('click', (ev)=>
+      shareBeer(best.name, {label:best.sizeLabel, price:best.price, rate:best.rate}, ev.currentTarget));
   });
 
   // ---------- Method sub-tabs ----------
-  document.querySelectorAll('.method-btn').forEach(btn=>{
+  document.querySelectorAll('.method-btn[data-method]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.method-btn').forEach(b=>b.classList.remove('active'));
       document.querySelectorAll('.method-panel').forEach(p=>p.classList.remove('active'));
@@ -1244,6 +1339,172 @@ Jug $28.00"></textarea>
     }
   });
 
+  // ---------- Shout tracker ----------
+  let mates = [];
+  let shoutIdx = 0;
+  function renderShouts(){
+    const banner = $('shout-banner');
+    if(mates.length){
+      banner.style.display = '';
+      $('shout-who').textContent = mates[shoutIdx % mates.length].name;
+    } else {
+      banner.style.display = 'none';
+    }
+    const list = $('mate-list');
+    if(mates.length === 0){
+      list.innerHTML = '<div class="empty">Add your mates to start tracking whose round it is.</div>';
+      return;
+    }
+    list.innerHTML = mates.map((m,i)=>`
+      <div class="result ${i===shoutIdx?'win':''}" style="animation-delay:${i*40}ms">
+        <div>
+          <div class="name">${escHtml(m.name)}${i===shoutIdx?'<span class="badge">UP NEXT</span>':''}</div>
+          <div class="rate">${m.rounds} round${m.rounds===1?'':'s'} bought</div>
+        </div>
+        <button class="remove" data-mrm="${i}" style="position:static;">✕</button>
+      </div>`).join('');
+    list.querySelectorAll('[data-mrm]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const i = +b.dataset.mrm;
+        mates.splice(i, 1);
+        if(i < shoutIdx) shoutIdx--;
+        if(shoutIdx >= mates.length) shoutIdx = 0;
+        renderShouts(); saveState();
+      });
+    });
+  }
+  function addMate(){
+    const inp = $('mate-input');
+    const name = inp.value.trim();
+    if(!name) return;
+    mates.push({name: name, rounds: 0});
+    inp.value = '';
+    renderShouts(); saveState();
+  }
+  $('mate-add').addEventListener('click', addMate);
+  $('mate-input').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') addMate(); });
+  $('shout-done').addEventListener('click', ()=>{
+    if(!mates.length) return;
+    mates[shoutIdx].rounds++;
+    shoutIdx = (shoutIdx + 1) % mates.length;
+    renderShouts(); saveState();
+  });
+  $('shout-share').addEventListener('click', ()=>{
+    if(!mates.length) return;
+    shareText('📣 Oi ' + mates[shoutIdx % mates.length].name + " — it's your shout! 🍻");
+  });
+  $('shout-shuffle').addEventListener('click', ()=>{
+    for(let i = mates.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = mates[i]; mates[i] = mates[j]; mates[j] = tmp;
+    }
+    shoutIdx = 0;
+    renderShouts(); saveState();
+  });
+  $('shout-reset').addEventListener('click', ()=>{
+    mates.forEach(m=> m.rounds = 0);
+    shoutIdx = 0;
+    renderShouts(); saveState();
+  });
+
+  // ---------- Upcoming games (NRL + AFL via TheSportsDB) ----------
+  const LEAGUES = { nrl: {id: 4416, label: 'NRL'}, afl: {id: 4456, label: 'AFL'} };
+  let leagueFilter = 'all';
+  let games = [];
+
+  function shortTeam(n){ return String(n||'').replace(/ Football Club$/i, '').trim(); }
+  function parseTs(ev){
+    if(!ev || !ev.strTimestamp) return NaN;
+    return Date.parse(ev.strTimestamp + (ev.strTimestamp.indexOf('Z') === -1 ? 'Z' : ''));
+  }
+  async function fetchLeague(key){
+    const id = LEAGUES[key].id;
+    const base = 'https://www.thesportsdb.com/api/v1/json/123/';
+    const now = Date.now();
+    const fresh = (evs)=> (evs||[]).filter(ev=> parseTs(ev) > now - 3*3600*1000);
+    let future = [];
+    try{
+      const r = await withTimeout(fetch(base + 'eventsnextleague.php?id=' + id), 10000, 'games-timeout');
+      if(r.ok) future = fresh((await r.json()).events);
+    }catch(e){}
+    if(future.length < 3){
+      // "next events" data can lag — fall back to the full season draw and filter to future games
+      try{
+        const r = await withTimeout(fetch(base + 'eventsseason.php?id=' + id + '&s=' + new Date().getFullYear()), 15000, 'games-timeout');
+        if(r.ok){
+          const all = fresh((await r.json()).events);
+          if(all.length > future.length) future = all;
+        }
+      }catch(e){}
+    }
+    return future.map(ev=> ({
+      league: key,
+      home: shortTeam(ev.strHomeTeam),
+      away: shortTeam(ev.strAwayTeam),
+      venue: ev.strVenue || '',
+      t: parseTs(ev)
+    }));
+  }
+  function renderGames(){
+    const list = $('games-list');
+    const shown = games.filter(g=> leagueFilter === 'all' || g.league === leagueFilter).slice(0, 40);
+    if(!shown.length){
+      list.innerHTML = '<div class="empty">No upcoming games loaded — tap Refresh draw.</div>';
+      return;
+    }
+    let html = '';
+    let lastDay = '';
+    shown.forEach((g,i)=>{
+      const d = new Date(g.t);
+      const day = d.toLocaleDateString(undefined, {weekday:'long', day:'numeric', month:'short'});
+      if(day !== lastDay){
+        html += `<div class="card" style="padding:8px 14px; margin:14px 0 8px;"><h2 style="margin:0;">${day}</h2></div>`;
+        lastDay = day;
+      }
+      const time = d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+      html += `<div class="result" style="animation-delay:${(i%8)*40}ms">
+        <div>
+          <div class="name">${escHtml(g.home)} v ${escHtml(g.away)}</div>
+          <div class="rate">${LEAGUES[g.league].label} · ${time}${g.venue ? ' · ' + escHtml(g.venue) : ''}</div>
+        </div>
+      </div>`;
+    });
+    list.innerHTML = html;
+  }
+  async function loadGames(force){
+    const status = $('games-status');
+    if(!force){
+      try{
+        const c = JSON.parse(localStorage.getItem('beerValueGames')||'null');
+        if(c && (Date.now() - c.ts) < 6*3600*1000 && Array.isArray(c.games) && c.games.length){
+          games = c.games.filter(g=> g.t > Date.now() - 3*3600*1000);
+          renderGames();
+          status.textContent = 'Draw updated ' + new Date(c.ts).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + ' · times shown in your local time.';
+          return;
+        }
+      }catch(e){}
+    }
+    status.innerHTML = '<span class="spinner"></span>Loading the draw…';
+    const results = await Promise.all([fetchLeague('nrl'), fetchLeague('afl')]);
+    games = results[0].concat(results[1]).sort((a,b)=> a.t - b.t);
+    if(games.length){
+      try{ localStorage.setItem('beerValueGames', JSON.stringify({ts: Date.now(), games: games})); }catch(e){}
+      status.textContent = 'Draw updated just now · times shown in your local time.';
+    } else {
+      status.textContent = "Couldn't load the draw — check your internet and tap Refresh.";
+    }
+    renderGames();
+  }
+  document.querySelectorAll('.league-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.league-btn').forEach(b=> b.classList.remove('active'));
+      btn.classList.add('active');
+      leagueFilter = btn.dataset.league;
+      renderGames();
+    });
+  });
+  $('games-refresh').addEventListener('click', ()=> loadGames(true));
+
   // ---------- Persistence ----------
   function saveState(){
     try{
@@ -1253,7 +1514,9 @@ Jug $28.00"></textarea>
         docked: tabbar.classList.contains('docked'),
         tab: currentTab,
         quick,
-        beers
+        beers,
+        mates,
+        shoutIdx
       }));
     }catch(e){}
   }
@@ -1276,8 +1539,13 @@ Jug $28.00"></textarea>
         {id:'b'+(idCounter++), name:'', pot:'', schooner:'', pint:'', jug:'', customs:[]}, b));
       beers.forEach(b=>{ if(!Array.isArray(b.customs)) b.customs = []; });
     }
+    if(Array.isArray(state.mates)){
+      mates = state.mates.filter(m=> m && m.name).map(m=> ({name: String(m.name), rounds: (+m.rounds || 0)}));
+      shoutIdx = Math.min((+state.shoutIdx || 0), Math.max(mates.length - 1, 0));
+    }
   }
   renderFinder();
+  renderShouts();
   updateQuick();
   if(state && state.docked && state.tab){
     dock(state.tab);
@@ -1286,5 +1554,3 @@ Jug $28.00"></textarea>
 </script>
 </body>
 </html>
-
-
