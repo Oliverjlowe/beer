@@ -1651,7 +1651,7 @@ Jug $28.00"></textarea>
     if(future.length < 3 || !coversWeek){
       // "next events" data can lag or be too short — fall back to the full season draw for the whole week
       try{
-        const r = await withTimeout(fetch(base + 'eventsseason.php?id=' + id + '&s=' + new Date().getFullYear()), 15000, 'games-timeout');
+        const r = await withTimeout(fetch(base + 'eventsseason.php?id=' + id + '&s=' + new Date().getFullYear()), 30000, 'games-timeout');
         if(r.ok){
           const all = fresh((await r.json()).events);
           if(all.length > future.length) future = all;
@@ -1703,10 +1703,14 @@ Jug $28.00"></textarea>
       try{
         const c = JSON.parse(localStorage.getItem('beerValueGames2')||'null');
         if(c && (Date.now() - c.ts) < 6*3600*1000 && Array.isArray(c.games) && c.games.length){
-          games = c.games.filter(g=> g.t > Date.now() - 3*3600*1000);
-          renderGames();
-          status.textContent = 'Games through Sunday · updated ' + new Date(c.ts).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + ' · local times.';
-          return;
+          const maxT = Math.max.apply(null, c.games.map(g=> g.t));
+          // only trust the cache if it actually covers the week (or is clearly a full draw)
+          if(maxT >= weekEndTs() || c.games.length >= 8){
+            games = c.games.filter(g=> g.t > Date.now() - 3*3600*1000);
+            renderGames();
+            status.textContent = 'Games through Sunday · updated ' + new Date(c.ts).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + ' · local times.';
+            return;
+          }
         }
       }catch(e){}
     }
@@ -1714,8 +1718,14 @@ Jug $28.00"></textarea>
     const results = await Promise.all([fetchLeague('nrl'), fetchLeague('afl')]);
     games = results[0].concat(results[1]).sort((a,b)=> a.t - b.t);
     if(games.length){
-      try{ localStorage.setItem('beerValueGames2', JSON.stringify({ts: Date.now(), games: games})); }catch(e){}
-      status.textContent = 'Games through Sunday · updated just now · local times.';
+      const covered = Math.max.apply(null, games.map(g=> g.t)) >= weekEndTs();
+      if(covered){
+        try{ localStorage.setItem('beerValueGames2', JSON.stringify({ts: Date.now(), games: games})); }catch(e){}
+        status.textContent = 'Games through Sunday · updated just now · local times.';
+      } else {
+        // partial load (season draw likely timed out) — show what we have but DON'T cache it
+        status.textContent = 'Only got part of the week — tap 🔄 Refresh draw to retry the full draw.';
+      }
     } else {
       status.textContent = "Couldn't load the draw — check your internet and tap Refresh.";
     }
@@ -1954,7 +1964,7 @@ Jug $28.00"></textarea>
     kctx.font = '48px sans-serif';
     kctx.textAlign = 'center';
     kctx.textBaseline = 'middle';
-    kctx.fillText('🍺', 0, 2);
+    kctx.fillText(kScore >= 50 ? '🍆' : '🍺', 0, 2);   // 50 taps: the beer transcends
     kctx.restore();
   }
   function keepyTick(now){
@@ -1962,13 +1972,16 @@ Jug $28.00"></textarea>
     if(!document.getElementById('tab-keepy').classList.contains('active')){ keepyOver(); return; }
     const dt = Math.min((now - kLast) / 1000, 0.033);
     kLast = now;
-    const g = 850 + Math.floor(kBall.taps / 5) * 260;   // gravity jumps a gear every 5 taps
+    const tier = Math.floor(kBall.taps / 5);
+    const g = 900 + tier * 340;                              // gravity jumps a gear every 5 taps
+    const wallR = Math.min(1.04 + tier * 0.07, 1.6);         // walls ADD energy as tiers climb
     kBall.vy += g * dt;
     kBall.x += kBall.vx * dt;
     kBall.y += kBall.vy * dt;
-    if(kBall.x < K_R){ kBall.x = K_R; kBall.vx = Math.abs(kBall.vx); }
-    if(kBall.x > kW - K_R){ kBall.x = kW - K_R; kBall.vx = -Math.abs(kBall.vx); }
-    if(kBall.y < K_R){ kBall.y = K_R; kBall.vy = Math.abs(kBall.vy) * 0.5; }
+    if(kBall.x < K_R){ kBall.x = K_R; kBall.vx = Math.abs(kBall.vx) * wallR + 40; }
+    if(kBall.x > kW - K_R){ kBall.x = kW - K_R; kBall.vx = -(Math.abs(kBall.vx) * wallR + 40); }
+    kBall.vx = Math.max(-950, Math.min(950, kBall.vx));
+    if(kBall.y < K_R){ kBall.y = K_R; kBall.vy = Math.abs(kBall.vy) * Math.min(0.75 + tier * 0.06, 1.05); }
     if(kBall.y > kH - K_R){ keepyDraw(); keepyOver(); return; }
     keepyDraw();
     kRaf = requestAnimationFrame(keepyTick);
@@ -1982,10 +1995,12 @@ Jug $28.00"></textarea>
       kBall.taps++;
       kScore++;
       $('keepy-score').textContent = kScore;
-      // unpredictable pop: random bounce height + random sideways kick on top of the steer
-      kBall.vy = -(460 + Math.random() * 340 + Math.floor(kBall.taps / 5) * 30);
-      kBall.vx += (-dx) * 7 + (Math.random() * 2 - 1) * 300;
-      kBall.vx = Math.max(-560, Math.min(560, kBall.vx));
+      // unpredictable pop: random bounce height + a violent random sideways kick
+      const tapTier = Math.floor(kBall.taps / 5);
+      kBall.vy = -(480 + Math.random() * 360 + tapTier * 20);
+      kBall.vx += (-dx) * 8 + (Math.random() * 2 - 1) * (320 + tapTier * 40);
+      const vmax = 620 + tapTier * 30;
+      kBall.vx = Math.max(-vmax, Math.min(vmax, kBall.vx));
       if(kScore % 15 === 0) keepySetInvert(!kInvert);   // every 15 taps: flip the world
     }
   });
