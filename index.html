@@ -32,7 +32,7 @@
 
   /* ---------- Landing ---------- */
   .landing-wrap{
-    position:fixed; left:0; right:0; top:calc(55% - 160px); text-align:center; z-index:5;
+    position:fixed; left:0; right:0; top:calc(52% - 212px); text-align:center; z-index:5;
     transition:opacity .35s ease, transform .35s ease; pointer-events:none;
   }
   .landing-wrap p{font-size:14px; color:var(--text-dim); margin:0;}
@@ -40,7 +40,7 @@
   .landing-wrap.hidden{opacity:0; transform:translateY(10px);}
 
   .pub-bar{
-    position:fixed; left:0; right:0; top:calc(55% + 138px); z-index:6;
+    position:fixed; left:0; right:0; top:calc(52% + 188px); z-index:6;
     display:flex; justify-content:center; align-items:center; gap:8px;
     transition:opacity .35s ease, transform .35s ease;
   }
@@ -53,7 +53,7 @@
   }
 
   .landing-quote{
-    position:fixed; left:24px; right:24px; top:calc(55% + 192px); z-index:5; margin:0;
+    position:fixed; left:24px; right:24px; top:calc(52% + 240px); z-index:5; margin:0;
     text-align:center; font-size:13px; font-style:italic; color:var(--text-dim); line-height:1.5;
     font-family:Papyrus, 'Papyrus', fantasy, cursive;
     transition:opacity .35s ease, transform .35s ease; pointer-events:none;
@@ -62,7 +62,7 @@
 
   nav.tabbar{
     position:fixed; z-index:20; display:flex; flex-wrap:wrap; justify-content:center; gap:14px; width:262px;
-    left:50%; top:55%; transform:translate(-50%,-50%);
+    left:50%; top:52%; transform:translate(-50%,-50%);
     transition:top .5s cubic-bezier(.22,1,.36,1), left .5s cubic-bezier(.22,1,.36,1),
                right .5s cubic-bezier(.22,1,.36,1), bottom .5s cubic-bezier(.22,1,.36,1),
                transform .5s cubic-bezier(.22,1,.36,1), padding .5s ease, gap .5s ease,
@@ -76,7 +76,7 @@
   }
   nav.tabbar button{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
-    width:118px; height:112px; border-radius:24px; background:var(--card); border:1px solid var(--border);
+    width:118px; height:104px; border-radius:24px; background:var(--card); border:1px solid var(--border);
     color:var(--text); font-size:14px; font-weight:600; box-shadow:0 10px 26px rgba(0,0,0,.4);
     transition:all .5s cubic-bezier(.22,1,.36,1), transform .25s cubic-bezier(.32,.72,0,1);
   }
@@ -116,6 +116,9 @@
   .result{border-radius:12px; padding:10px 12px; margin-top:8px; font-size:14px;
     display:flex; justify-content:space-between; align-items:center; background:var(--card2); border:1px solid var(--border);}
   .result.win{border-color:var(--green); background:rgba(111,191,115,0.12);}
+  .result.lose{border-color:var(--red); background:rgba(224,106,90,0.12);}
+  .odds-link{font-size:12px; font-weight:600; color:var(--gold); text-decoration:none;
+    border:1px solid var(--gold-dim); padding:5px 10px; border-radius:8px; white-space:nowrap; margin-left:8px;}
   .result .name{font-weight:600;}
   .result .rate{color:var(--text-dim); font-size:12px;}
   .badge{background:var(--green); color:#0f1a10; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px;}
@@ -244,6 +247,7 @@
   <button data-tab="paste"><span class="icon">🍻</span>Paste Menu</button>
   <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
   <button data-tab="games"><span class="icon">🏉</span>Games</button>
+  <button data-tab="trivia"><span class="icon">🧠</span>Trivia</button>
 </nav>
 
 <main id="main">
@@ -345,6 +349,21 @@ Jug $28.00"></textarea>
     </div>
     <div id="games-list"></div>
     <button class="btn btn-ghost" id="games-refresh" style="margin-top:12px;">🔄 Refresh draw</button>
+  </div>
+
+  <!-- TRIVIA -->
+  <div class="tab-panel" id="tab-trivia">
+    <div class="card">
+      <h2>🧠 Pub trivia</h2>
+      <p class="hint" id="trivia-status"></p>
+      <div id="trivia-q" style="font-size:16px; font-weight:600; line-height:1.45; margin:10px 0 12px;"></div>
+      <div id="trivia-opts"></div>
+      <button class="btn btn-primary" id="trivia-btn" style="margin-top:12px;">👀 Reveal answer</button>
+      <div class="card-actions" id="trivia-judge" style="display:none; margin-top:12px;">
+        <button class="btn btn-small btn-ghost" id="trivia-right" style="border-color:var(--green); color:var(--green);">✅ Got it</button>
+        <button class="btn btn-small btn-ghost" id="trivia-wrong" style="border-color:var(--red); color:var(--red);">❌ Missed it</button>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -802,6 +821,7 @@ Jug $28.00"></textarea>
     tabbar.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
     document.querySelectorAll('.tab-panel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+name));
     if(name === 'games') loadGames(false);
+    if(name === 'trivia' && !triviaCur && !quizOver) nextTrivia();
   }
 
   function dock(name){
@@ -1566,7 +1586,10 @@ Jug $28.00"></textarea>
   });
 
   // ---------- Upcoming games (NRL + AFL via TheSportsDB) ----------
-  const LEAGUES = { nrl: {id: 4416, label: 'NRL'}, afl: {id: 4456, label: 'AFL'} };
+  const LEAGUES = {
+    nrl: {id: 4416, label: 'NRL', odds: 'https://www.sportsbet.com.au/betting/rugby-league/nrl'},
+    afl: {id: 4456, label: 'AFL', odds: 'https://www.sportsbet.com.au/betting/australian-rules/afl'}
+  };
   let leagueFilter = 'all';
   let games = [];
 
@@ -1625,11 +1648,13 @@ Jug $28.00"></textarea>
         lastDay = day;
       }
       const time = d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+      const oddsUrl = LEAGUES[g.league].odds;
       html += `<div class="result" style="animation-delay:${(i%8)*40}ms">
         <div>
           <div class="name">${escHtml(g.home)} v ${escHtml(g.away)}</div>
           <div class="rate">${LEAGUES[g.league].label} · ${time}${g.venue ? ' · ' + escHtml(g.venue) : ''}</div>
         </div>
+        <a class="odds-link" target="_blank" rel="noopener" href="${escAttr(oddsUrl)}">📈 Odds</a>
       </div>`;
     });
     list.innerHTML = html;
@@ -1667,6 +1692,133 @@ Jug $28.00"></textarea>
     });
   });
   $('games-refresh').addEventListener('click', ()=> loadGames(true));
+
+  // ---------- Pub trivia quiz (Open Trivia DB, general knowledge, 25 a round) ----------
+  const QUIZ_LEN = 25;
+  let triviaQueue = [];
+  let triviaCur = null;
+  let triviaAnswered = false;
+  let triviaPicked = null;
+  let quizNum = 0;        // questions completed this round
+  let quizScore = 0;
+  let quizOver = false;
+  let triviaFetching = false;
+
+  function shuffleArr(a){
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function saveTrivia(){
+    try{ localStorage.setItem('beerValueTrivia', JSON.stringify({queue: triviaQueue.slice(0, 50), num: quizNum, score: quizScore})); }catch(e){}
+  }
+  async function fetchTrivia(){
+    if(triviaFetching) return;
+    triviaFetching = true;
+    try{
+      const r = await withTimeout(fetch('https://opentdb.com/api.php?amount=25&category=9&encode=url3986'), 12000, 'trivia-timeout');
+      if(r.ok){
+        const j = await r.json();
+        if(j.response_code === 0){
+          j.results.forEach(q=>{
+            triviaQueue.push({
+              q: decodeURIComponent(q.question),
+              correct: decodeURIComponent(q.correct_answer),
+              opts: shuffleArr([q.correct_answer].concat(q.incorrect_answers).map(decodeURIComponent)),
+              diff: decodeURIComponent(q.difficulty || '')
+            });
+          });
+          saveTrivia();
+        }
+      }
+    }catch(e){}
+    triviaFetching = false;
+  }
+  function renderTrivia(){
+    const qEl = $('trivia-q'), oEl = $('trivia-opts'), btn = $('trivia-btn'), status = $('trivia-status'), judge = $('trivia-judge');
+    if(quizOver){
+      qEl.textContent = '';
+      const pct = quizScore / QUIZ_LEN;
+      const verdict = pct >= 0.8 ? 'Quiz champion — shout yourself a pint! 🏆'
+                    : pct >= 0.6 ? 'Solid effort — worth a schooner. 🍺'
+                    : pct >= 0.4 ? 'Middle of the pack — a pot for you. 🤏'
+                    : 'Rough round — stick to the drinking. 😅';
+      oEl.innerHTML = `<div class="best-banner"><div class="label">Final score</div><div class="value">${quizScore} / ${QUIZ_LEN}</div><div class="sub">${verdict}</div></div>`;
+      status.textContent = '';
+      btn.style.display = '';
+      btn.textContent = '🔄 Start a new quiz';
+      judge.style.display = 'none';
+      return;
+    }
+    if(!triviaCur){
+      qEl.textContent = '';
+      oEl.innerHTML = '';
+      status.innerHTML = triviaFetching ? '<span class="spinner"></span>Fetching questions…' : "Couldn't load questions — check your internet.";
+      btn.style.display = '';
+      btn.textContent = '🔄 Try again';
+      judge.style.display = 'none';
+      return;
+    }
+    status.textContent = 'Question ' + (quizNum + 1) + ' of ' + QUIZ_LEN + ' · Score ' + quizScore + (triviaCur.diff ? ' · ' + triviaCur.diff : '');
+    qEl.textContent = triviaCur.q;
+    oEl.innerHTML = triviaCur.opts.map(o=>{
+      const isAns = triviaAnswered && o === triviaCur.correct;
+      return `<div class="result ${isAns ? 'win' : ''}">
+        <div><div class="name">${escHtml(o)}${isAns ? '<span class="badge">ANSWER</span>' : ''}</div></div>
+      </div>`;
+    }).join('');
+    // reveal first, then self-report: did you get it?
+    btn.style.display = triviaAnswered ? 'none' : '';
+    btn.textContent = '👀 Reveal answer';
+    judge.style.display = triviaAnswered ? '' : 'none';
+  }
+  async function nextTrivia(){
+    triviaAnswered = false;
+    triviaPicked = null;
+    triviaCur = triviaQueue.shift() || null;
+    if(!triviaCur){
+      renderTrivia();
+      await fetchTrivia();
+      triviaCur = triviaQueue.shift() || null;
+    }
+    if(triviaQueue.length < QUIZ_LEN) fetchTrivia();
+    saveTrivia();
+    renderTrivia();
+  }
+  function newQuiz(){
+    quizNum = 0; quizScore = 0; quizOver = false;
+    nextTrivia();
+  }
+  function advanceQuiz(gotIt){
+    if(gotIt) quizScore++;
+    quizNum++;
+    if(quizNum >= QUIZ_LEN){
+      quizOver = true;
+      saveTrivia();
+      renderTrivia();
+    } else {
+      nextTrivia();
+    }
+  }
+  $('trivia-btn').addEventListener('click', ()=>{
+    if(quizOver){ newQuiz(); return; }
+    if(!triviaCur){ nextTrivia(); return; }
+    triviaAnswered = true;   // show the answer, then self-report
+    renderTrivia();
+  });
+  $('trivia-right').addEventListener('click', ()=> advanceQuiz(true));
+  $('trivia-wrong').addEventListener('click', ()=> advanceQuiz(false));
+  try{
+    const savedTrivia = JSON.parse(localStorage.getItem('beerValueTrivia')||'null');
+    if(savedTrivia){
+      if(Array.isArray(savedTrivia.queue)) triviaQueue = savedTrivia.queue;
+      quizNum = +savedTrivia.num || 0;
+      quizScore = +savedTrivia.score || 0;
+      if(quizNum >= QUIZ_LEN){ quizNum = 0; quizScore = 0; }
+    }
+  }catch(e){}
 
   // ---------- Persistence ----------
   function saveState(){
