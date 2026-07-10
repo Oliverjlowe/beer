@@ -1898,10 +1898,13 @@ Jug $28.00"></textarea>
   const keepyCanvas = $('keepy-canvas');
   const kctx = keepyCanvas.getContext('2d');
   const K_R = 26;          // ball radius
-  const K_TAP = 58;        // generous tap radius
+  const K_TAP = 44;        // tight tap radius — you have to actually hit it
   let kW = 0, kH = 0;
   let kState = 'idle';     // idle | play | over
-  let kBall = null, kScore = 0, kBest = 0, kRaf = null, kLast = 0;
+  let kBalls = [], kScore = 0, kBest = 0, kRaf = null, kLast = 0;
+  function kNewBall(x, y){
+    return {x: x, y: y, vx: Math.random()*280 - 140, vy: -60};
+  }
   try{ kBest = +localStorage.getItem('beerValueKeepyBest') || 0; }catch(e){}
   $('keepy-best').textContent = kBest;
 
@@ -1925,7 +1928,7 @@ Jug $28.00"></textarea>
     keepySetInvert(false);
     $('keepy-score').textContent = '0';
     $('keepy-msg').style.display = 'none';
-    kBall = {x: kW/2, y: kH*0.22, vx: Math.random()*160 - 80, vy: -80, taps: 0};
+    kBalls = [kNewBall(kW/2, kH*0.22)];
     kLast = performance.now();
     if(kRaf) cancelAnimationFrame(kRaf);
     kRaf = requestAnimationFrame(keepyTick);
@@ -1957,32 +1960,37 @@ Jug $28.00"></textarea>
   }
   function keepyDraw(){
     kctx.clearRect(0, 0, kW, kH);
-    const tilt = Math.max(-0.5, Math.min(0.5, kBall.vx / 600));
-    kctx.save();
-    kctx.translate(kBall.x, kBall.y);
-    kctx.rotate(tilt);
+    const glyph = kScore >= 50 ? '🍆' : '🍺';   // 50 taps: the beer transcends
     kctx.font = '48px sans-serif';
     kctx.textAlign = 'center';
     kctx.textBaseline = 'middle';
-    kctx.fillText(kScore >= 50 ? '🍆' : '🍺', 0, 2);   // 50 taps: the beer transcends
-    kctx.restore();
+    for(const b of kBalls){
+      const tilt = Math.max(-0.5, Math.min(0.5, b.vx / 600));
+      kctx.save();
+      kctx.translate(b.x, b.y);
+      kctx.rotate(tilt);
+      kctx.fillText(glyph, 0, 2);
+      kctx.restore();
+    }
   }
   function keepyTick(now){
     if(kState !== 'play') return;
     if(!document.getElementById('tab-keepy').classList.contains('active')){ keepyOver(); return; }
     const dt = Math.min((now - kLast) / 1000, 0.033);
     kLast = now;
-    const tier = Math.floor(kBall.taps / 5);
-    const g = 900 + tier * 340;                              // gravity jumps a gear every 5 taps
-    const wallR = Math.min(1.04 + tier * 0.07, 1.6);         // walls ADD energy as tiers climb
-    kBall.vy += g * dt;
-    kBall.x += kBall.vx * dt;
-    kBall.y += kBall.vy * dt;
-    if(kBall.x < K_R){ kBall.x = K_R; kBall.vx = Math.abs(kBall.vx) * wallR + 40; }
-    if(kBall.x > kW - K_R){ kBall.x = kW - K_R; kBall.vx = -(Math.abs(kBall.vx) * wallR + 40); }
-    kBall.vx = Math.max(-950, Math.min(950, kBall.vx));
-    if(kBall.y < K_R){ kBall.y = K_R; kBall.vy = Math.abs(kBall.vy) * Math.min(0.75 + tier * 0.06, 1.05); }
-    if(kBall.y > kH - K_R){ keepyDraw(); keepyOver(); return; }
+    const tier = Math.floor(kScore / 3);                     // gears shift every 3 taps
+    const g = 1300 + tier * 450;
+    const wallR = Math.min(1.10 + tier * 0.09, 1.9);         // walls violently ADD energy
+    for(const b of kBalls){
+      b.vy += g * dt;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      if(b.x < K_R){ b.x = K_R; b.vx = Math.abs(b.vx) * wallR + 70; }
+      if(b.x > kW - K_R){ b.x = kW - K_R; b.vx = -(Math.abs(b.vx) * wallR + 70); }
+      b.vx = Math.max(-1100, Math.min(1100, b.vx));
+      if(b.y < K_R){ b.y = K_R; b.vy = Math.abs(b.vy) * Math.min(0.85 + tier * 0.08, 1.15); }
+      if(b.y > kH - K_R){ keepyDraw(); keepyOver(); return; }   // ANY beer down = game over
+    }
     keepyDraw();
     kRaf = requestAnimationFrame(keepyTick);
   }
@@ -1990,18 +1998,28 @@ Jug $28.00"></textarea>
     const r = keepyArea.getBoundingClientRect();
     const x = e.clientX - r.left, y = e.clientY - r.top;
     if(kState !== 'play'){ keepyStart(); return; }
-    const dx = x - kBall.x, dy = y - kBall.y;
-    if(dx*dx + dy*dy <= K_TAP*K_TAP){
-      kBall.taps++;
+    // hit the closest beer within tap range
+    let hit = null, hd = Infinity;
+    for(const b of kBalls){
+      const dx = x - b.x, dy = y - b.y, d = dx*dx + dy*dy;
+      if(d <= K_TAP*K_TAP && d < hd){ hd = d; hit = b; }
+    }
+    if(hit){
       kScore++;
       $('keepy-score').textContent = kScore;
-      // unpredictable pop: random bounce height + a violent random sideways kick
-      const tapTier = Math.floor(kBall.taps / 5);
-      kBall.vy = -(480 + Math.random() * 360 + tapTier * 20);
-      kBall.vx += (-dx) * 8 + (Math.random() * 2 - 1) * (320 + tapTier * 40);
-      const vmax = 620 + tapTier * 30;
-      kBall.vx = Math.max(-vmax, Math.min(vmax, kBall.vx));
-      if(kScore % 15 === 0) keepySetInvert(!kInvert);   // every 15 taps: flip the world
+      // unpredictable pop: wildly random bounce height + a violent random sideways kick
+      const tapTier = Math.floor(kScore / 3);
+      hit.vy = -(430 + Math.random() * 420 + tapTier * 20);
+      hit.vx += (x - hit.x) * -9 + (Math.random() * 2 - 1) * (420 + tapTier * 60);
+      const vmax = 700 + tapTier * 40;
+      hit.vx = Math.max(-vmax, Math.min(vmax, hit.vx));
+      // 50–74: strobe zone — the world flips on EVERY tap. Otherwise every 15.
+      if(kScore >= 50 && kScore < 75) keepySetInvert(!kInvert);
+      else if(kScore % 15 === 0) keepySetInvert(!kInvert);
+      // 75: a second beer joins the party
+      if(kScore === 75 && kBalls.length === 1){
+        kBalls.push(kNewBall(kW / 2, kH * 0.15));
+      }
     }
   });
   document.addEventListener('visibilitychange', ()=>{
