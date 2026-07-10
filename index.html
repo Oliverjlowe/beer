@@ -244,7 +244,7 @@
   <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
   <button data-tab="games"><span class="icon">🏉</span>Footy</button>
   <button data-tab="trivia"><span class="icon">🧠</span>Trivia</button>
-  <button data-tab="keepy"><span class="icon">🕹️</span>Keepy Up</button>
+  <button data-tab="keepy"><span class="icon">🕹️</span>Games</button>
 </nav>
 
 <button id="more-beer" class="btn btn-primary">🍺 More beer</button>
@@ -367,18 +367,41 @@ Jug $28.00"></textarea>
     </div>
   </div>
 
-  <!-- KEEPY UP -->
+  <!-- ARCADE -->
   <div class="tab-panel" id="tab-keepy">
-    <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; font-size:14px;">
-      <span>Score: <b id="keepy-score" style="color:var(--gold);">0</b></span>
-      <span style="color:var(--text-dim);">Best: <b id="keepy-best">0</b></span>
+    <div class="method-tabs">
+      <button class="method-btn game-btn active" data-game="keepy">🍺 Beery Up</button>
+      <button class="method-btn game-btn" data-game="toss">😮 Beer Toss</button>
     </div>
-    <div id="keepy-area" style="position:relative; height:60vh; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer;">
-      <canvas id="keepy-canvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
-      <div id="keepy-msg" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; pointer-events:none; padding:0 20px;">
-        <div style="font-size:44px;">🍺</div>
-        <div style="font-size:16px; font-weight:700;">Tap the beer to keep it up!</div>
-        <p class="hint" style="margin:0;">It gets faster the longer you last.<br>If it hits the floor, that's a spilt beer.<br><br>Tap anywhere to start.</p>
+
+    <div id="game-keepy">
+      <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; font-size:14px;">
+        <span>Score: <b id="keepy-score" style="color:var(--gold);">0</b></span>
+        <span style="color:var(--text-dim);">Best: <b id="keepy-best">0</b></span>
+      </div>
+      <div id="keepy-area" style="position:relative; height:58vh; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer;">
+        <canvas id="keepy-canvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
+        <div id="keepy-msg" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; pointer-events:none; padding:0 20px;">
+          <div style="font-size:44px;">🍺</div>
+          <div style="font-size:16px; font-weight:700;">Tap the beer to keep it up!</div>
+          <p class="hint" style="margin:0;">It gets faster the longer you last.<br>If it hits the floor, that's a spilt beer.<br><br>Tap anywhere to start.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="game-toss" style="display:none;">
+      <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; font-size:13px; gap:8px;">
+        <span>Sunk: <b id="toss-score" style="color:var(--gold);">0</b></span>
+        <span id="toss-wind" style="color:var(--text-dim);">Aircon —</span>
+        <span style="color:var(--text-dim);">Best: <b id="toss-best">0</b></span>
+      </div>
+      <div id="toss-area" style="position:relative; height:72vh; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer;">
+        <canvas id="toss-canvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
+        <div id="toss-msg" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; pointer-events:none; padding:0 20px;">
+          <div style="font-size:44px;">😮</div>
+          <div style="font-size:16px; font-weight:700;">Flick the beer into the mouth!</div>
+          <p class="hint" style="margin:0;">Swipe up from the beer to throw.<br>Watch the aircon — it bends your shot.<br>3 spills and you're cut off.<br><br>Tap to start.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -839,7 +862,7 @@ Jug $28.00"></textarea>
     document.querySelectorAll('.tab-panel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+name));
     if(name === 'games') loadGames(false);
     if(name === 'trivia' && !triviaCur && !quizOver) nextTrivia();
-    if(name === 'keepy') keepyResize();
+    if(name === 'keepy'){ keepyResize(); tossResize(); }
   }
 
   function dock(name){
@@ -1955,7 +1978,7 @@ Jug $28.00"></textarea>
     sb.addEventListener('click', ()=>{
       const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
       shareText('🍺 Kept the beer up for ' + kScore + ' point' + (kScore === 1 ? '' : 's') +
-        ' on BPI Keepy Up' + (newBest ? ' — new personal best!' : '!') + ' “' + quote + '”');
+        ' on BPI Beery Up' + (newBest ? ' — new personal best!' : '!') + ' “' + quote + '”');
     });
   }
   function keepyDraw(){
@@ -2022,8 +2045,183 @@ Jug $28.00"></textarea>
       }
     }
   });
+  // ---------- Beer Toss (flick it into the mouth) ----------
+  const tossArea = $('toss-area');
+  const tossCanvas = $('toss-canvas');
+  const tctx = tossCanvas.getContext('2d');
+  let tW = 0, tH = 0;
+  let tState = 'idle';       // idle | play | over
+  let tScore = 0, tMiss = 0, tBest = 0, tRaf = null, tLast = 0, tTime = 0;
+  let tWind = 0;
+  let tBeer = null;          // null = resting at the bottom; object = in flight
+  let tFace = {x: 0, glyph: '😮', until: 0};
+  let tDrag = null;
+  try{ tBest = +localStorage.getItem('beerValueTossBest') || 0; }catch(e){}
+  $('toss-best').textContent = tBest;
+
+  function tossResize(){
+    const r = tossArea.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    tW = r.width; tH = r.height;
+    tossCanvas.width = Math.round(tW * dpr);
+    tossCanvas.height = Math.round(tH * dpr);
+    tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function tossRest(){ return {x: tW/2, y: tH - 44}; }
+  function faceY(){ return tH * 0.09; }
+  function facePos(){
+    if(tScore < 3) return tW / 2;                            // mouth stays put while you find your arm
+    const amp = Math.min(tW * 0.38, tW * 0.10 + tScore * 14); // then roams wider…
+    const speed = 0.8 + tScore * 0.12;                        // …and faster as you sink more
+    return tW/2 + Math.sin(tTime * speed) * amp;
+  }
+  function tossWindRoll(){
+    tWind = (Math.random() * 2 - 1) * Math.min(400, 20 + tScore * 25);  // aircon strengthens as you score
+  }
+  function tossHud(){
+    $('toss-score').textContent = tScore;
+    $('toss-wind').textContent = 'Aircon ' + (tWind < 0 ? '←' : '→') + ' ' + (Math.abs(tWind)/60).toFixed(1) + ' · Spills ' + tMiss + '/3';
+  }
+  function tossStart(){
+    tossResize();
+    tState = 'play'; tScore = 0; tMiss = 0; tTime = 0;
+    tBeer = null; tDrag = null;
+    tFace.glyph = '😮'; tFace.until = 0;
+    tossWindRoll(); tossHud();
+    $('toss-msg').style.display = 'none';
+    tLast = performance.now();
+    if(tRaf) cancelAnimationFrame(tRaf);
+    tRaf = requestAnimationFrame(tossTick);
+  }
+  function tossEnd(){
+    if(tState !== 'play') return;
+    tState = 'over';
+    if(tRaf) cancelAnimationFrame(tRaf);
+    const newBest = tScore > tBest;
+    if(newBest){
+      tBest = tScore;
+      try{ localStorage.setItem('beerValueTossBest', String(tBest)); }catch(e){}
+      $('toss-best').textContent = tBest;
+    }
+    const msg = $('toss-msg');
+    msg.style.display = '';
+    msg.innerHTML = `<div style="font-size:44px;">🚫</div>
+      <div style="font-size:17px; font-weight:700;">Cut off! ${tScore} beer${tScore===1?'':'s'} sunk${newBest ? ' — new best!' : ''}</div>
+      <p class="hint" style="margin:0;">Best: ${tBest} · Tap to go again</p>
+      <button class="btn btn-small btn-ghost share-btn" id="toss-share" style="pointer-events:auto; width:auto; padding:9px 16px;">📲 Share score</button>`;
+    const sb = $('toss-share');
+    sb.addEventListener('pointerdown', (ev)=> ev.stopPropagation());
+    sb.addEventListener('click', ()=>{
+      const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+      shareText('😮 Flicked ' + tScore + ' beer' + (tScore === 1 ? '' : 's') + ' straight into the mouth on BPI Beer Toss' +
+        (newBest ? ' — new personal best!' : '!') + ' “' + quote + '”');
+    });
+  }
+  function tossDraw(){
+    tctx.clearRect(0, 0, tW, tH);
+    tctx.textAlign = 'center';
+    tctx.textBaseline = 'middle';
+    tctx.font = '64px sans-serif';
+    tctx.fillText(tFace.glyph, tFace.x, faceY());
+    // wind indicator mid-screen: arrows + speed readout
+    tctx.font = '15px sans-serif';
+    tctx.fillStyle = 'rgba(224,169,64,0.75)';
+    const arrows = (tWind < 0 ? '←' : '→').repeat(Math.max(1, Math.min(4, Math.round(Math.abs(tWind)/90) + 1)));
+    tctx.fillText(arrows + '  ' + (Math.abs(tWind)/60).toFixed(1), tW/2, tH * 0.34);
+    tctx.fillStyle = '#f3ead9';
+    tctx.font = '44px sans-serif';
+    if(tBeer){
+      tctx.save();
+      tctx.translate(tBeer.x, tBeer.y);
+      tctx.rotate(Math.max(-0.6, Math.min(0.6, tBeer.vx / 500)));
+      tctx.fillText('🍺', 0, 0);
+      tctx.restore();
+    } else {
+      const rest = tossRest();
+      tctx.fillText('🍺', rest.x, rest.y);
+    }
+  }
+  function tossTick(now){
+    if(tState !== 'play') return;
+    if(!document.getElementById('tab-keepy').classList.contains('active') || $('game-toss').style.display === 'none'){ tossEnd(); return; }
+    const dt = Math.min((now - tLast) / 1000, 0.033);
+    tLast = now; tTime += dt;
+    tFace.x = facePos();
+    if(tFace.until && now > tFace.until){ tFace.glyph = '😮'; tFace.until = 0; }
+    if(tBeer){
+      tBeer.vy += 1500 * dt;
+      tBeer.vx += tWind * 3 * dt;      // aircon bends the shot
+      tBeer.x += tBeer.vx * dt;
+      tBeer.y += tBeer.vy * dt;
+      const mx = tFace.x, my = faceY() + 15;
+      const dx = tBeer.x - mx, dy = tBeer.y - my;
+      if(dx*dx + dy*dy < 24*24){
+        tScore++;                       // straight down the hatch
+        tFace.glyph = '😋'; tFace.until = now + 600;
+        tBeer = null;
+        tossWindRoll(); tossHud();
+      } else if(tBeer.x < -50 || tBeer.x > tW + 50 || tBeer.y > tH + 50 || (tBeer.vy > 0 && tBeer.y > tH - 40)){
+        tMiss++;
+        tFace.glyph = '😞'; tFace.until = now + 600;
+        tBeer = null;
+        tossWindRoll(); tossHud();
+        if(tMiss >= 3){ tossDraw(); tossEnd(); return; }
+      }
+    }
+    tossDraw();
+    tRaf = requestAnimationFrame(tossTick);
+  }
+  tossArea.addEventListener('pointerdown', (e)=>{
+    const r = tossArea.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    if(tState !== 'play'){ tossStart(); return; }
+    if(tBeer) return;                   // one's already airborne
+    const rest = tossRest();
+    const dx = x - rest.x, dy = y - rest.y;
+    if(dx*dx + dy*dy <= 90*90){
+      tDrag = [{x: x, y: y, t: performance.now()}];
+    }
+  });
+  tossArea.addEventListener('pointermove', (e)=>{
+    if(!tDrag) return;
+    const r = tossArea.getBoundingClientRect();
+    tDrag.push({x: e.clientX - r.left, y: e.clientY - r.top, t: performance.now()});
+    if(tDrag.length > 12) tDrag.shift();
+  });
+  function tossRelease(){
+    if(!tDrag) return;
+    const pts = tDrag; tDrag = null;
+    const end = pts[pts.length - 1];
+    let i = pts.length - 1;
+    while(i > 0 && end.t - pts[i-1].t < 90) i--;
+    const start = pts[i];
+    const dt = Math.max(0.016, (end.t - start.t) / 1000);
+    let vx = (end.x - start.x) / dt, vy = (end.y - start.y) / dt;
+    if(vy > -250) return;               // needs a proper upward flick
+    vy *= 1.05;
+    const sp = Math.hypot(vx, vy), maxSp = 2400;
+    if(sp > maxSp){ vx *= maxSp/sp; vy *= maxSp/sp; }
+    const rest = tossRest();
+    tBeer = {x: rest.x, y: rest.y, vx: vx, vy: vy};
+  }
+  tossArea.addEventListener('pointerup', tossRelease);
+  tossArea.addEventListener('pointercancel', ()=>{ tDrag = null; });
+
+  // ---------- Games switcher ----------
+  document.querySelectorAll('.game-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.game-btn').forEach(b=> b.classList.remove('active'));
+      btn.classList.add('active');
+      const toss = btn.dataset.game === 'toss';
+      $('game-keepy').style.display = toss ? 'none' : '';
+      $('game-toss').style.display = toss ? '' : 'none';
+      if(toss){ keepyOver(); tossResize(); }
+      else { tossEnd(); keepyResize(); }
+    });
+  });
+
   document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState === 'hidden') keepyOver();
+    if(document.visibilityState === 'hidden'){ keepyOver(); tossEnd(); }
   });
 
   // ---------- Persistence ----------
