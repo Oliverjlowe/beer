@@ -52,6 +52,29 @@
     -webkit-appearance:none; appearance:none; text-align:center;
   }
 
+  .compass-wrap{
+    position:fixed; left:0; right:0; z-index:6;
+    top:max(calc(env(safe-area-inset-top) + 78px), calc(52% - 296px));
+    display:flex; justify-content:center; align-items:center; gap:14px;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .compass-wrap.hidden{opacity:0; transform:translateY(10px); pointer-events:none;}
+  #compass-btn{
+    width:64px; height:64px; border-radius:50%; flex:none; position:relative; padding:0;
+    background:var(--card2); border:2px solid var(--gold-dim); color:var(--gold);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  #compass-btn::before{
+    content:'N'; position:absolute; top:3px; left:50%; transform:translateX(-50%);
+    font-size:9px; font-weight:700; color:var(--text-dim);
+  }
+  #compass-arrow{display:block; transition:transform .25s ease; line-height:1; font-size:28px;}
+  .compass-info{text-align:left; max-width:58%;}
+  .compass-title{font-size:11px; letter-spacing:1.5px; color:var(--gold); font-weight:700;}
+  .compass-name{font-size:14px; font-weight:600; color:var(--text); margin:2px 0 0;}
+  .compass-hint{font-size:10.5px; color:var(--text-dim); margin:1px 0 0;}
+
   .landing-quote{
     position:fixed; left:24px; right:24px; top:calc(52% + 240px); z-index:5; margin:0;
     text-align:center; font-size:13px; font-style:italic; color:var(--text-dim); line-height:1.5;
@@ -231,6 +254,15 @@
   <p>What do you want to do?</p>
 </div>
 
+<div class="compass-wrap" id="compass-wrap">
+  <button id="compass-btn" title="Beer compass" aria-label="Beer compass"><span id="compass-arrow">▲</span></button>
+  <div class="compass-info">
+    <div class="compass-title">🧭 BEER COMPASS</div>
+    <div class="compass-name" id="compass-label">Finding the closest pub…</div>
+    <div class="compass-hint" id="compass-hint"></div>
+  </div>
+</div>
+
 <div class="pub-bar" id="pub-bar">
   <span class="pin">📍</span>
   <select id="pub-select" aria-label="Your pub"><option value="">Finding your pub…</option></select>
@@ -395,7 +427,7 @@ Jug $28.00"></textarea>
         <span id="toss-wind" style="color:var(--text-dim);">Aircon —</span>
         <span style="color:var(--text-dim);">Best: <b id="toss-best">0</b></span>
       </div>
-      <div id="toss-area" style="position:relative; height:72vh; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer;">
+      <div id="toss-area" style="position:relative; height:64vh; margin-bottom:96px; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer;">
         <canvas id="toss-canvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
         <div id="toss-msg" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; pointer-events:none; padding:0 20px;">
           <div style="font-size:44px;">😮</div>
@@ -873,6 +905,7 @@ Jug $28.00"></textarea>
     landingWrap.classList.add('hidden');
     $('pub-bar').classList.add('hidden');
     $('landing-quote').classList.add('hidden');
+    $('compass-wrap').classList.add('hidden');
     activateTab(name);
     main.classList.add('show');
     saveState();
@@ -886,6 +919,7 @@ Jug $28.00"></textarea>
     landingWrap.classList.add('visible');
     $('pub-bar').classList.remove('hidden');
     $('landing-quote').classList.remove('hidden');
+    $('compass-wrap').classList.remove('hidden');
     main.classList.remove('show');
     currentTab = null;
     tabbar.querySelectorAll('button').forEach(b=> b.classList.remove('active'));
@@ -927,9 +961,17 @@ Jug $28.00"></textarea>
     };
     const pri = (e)=> /pub|bar|biergarten/.test(e.tags.amenity||'') ? 0 : 1;
     els.sort((a,b)=> (pri(a) - pri(b)) || (dist(a) - dist(b)));
-    const names = [];
-    els.forEach(e=>{ if(names.indexOf(e.tags.name) === -1) names.push(e.tags.name); });
-    return names.slice(0, 8);
+    const out = [];
+    els.forEach(e=>{
+      if(out.some(o=> o.name === e.tags.name)) return;
+      out.push({
+        name: e.tags.name,
+        lat: e.lat !== undefined ? e.lat : (e.center && e.center.lat),
+        lon: e.lon !== undefined ? e.lon : (e.center && e.center.lon),
+        pub: pri(e) === 0
+      });
+    });
+    return out.slice(0, 8);
   }
   async function nominatimPub(lat, lon){
     const res = await withTimeout(fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat='+lat+'&lon='+lon), 9000, 'geo-timeout');
@@ -961,8 +1003,12 @@ Jug $28.00"></textarea>
       pos = await new Promise((resolve, reject)=> navigator.geolocation.getCurrentPosition(resolve, reject, {timeout: 10000, maximumAge: 120000}));
     }catch(e){ if(!c) setPubOptions([], null); return; }
     const lat = pos.coords.latitude, lon = pos.coords.longitude;
-    let names = [];
-    try{ names = await overpassPubs(lat, lon); }catch(e){}
+    cUser = {lat: lat, lon: lon};
+    let pubs = [];
+    try{ pubs = await overpassPubs(lat, lon); }catch(e){}
+    cPubs = pubs;
+    compassRender();
+    let names = pubs.map(p=> p.name);
     if(!names.length){
       try{ const n = await nominatimPub(lat, lon); if(n) names = [n]; }catch(e){}
     }
@@ -974,6 +1020,66 @@ Jug $28.00"></textarea>
       setPubOptions([], null);
     }
   }
+
+  // ---------- beer compass: points at the nearest pub ----------
+  let cPubs = [];
+  let cUser = null;
+  let cHeading = null;   // device heading, degrees clockwise from north
+  function havKm(a1, o1, a2, o2){
+    const R = 6371, dA = (a2-a1)*Math.PI/180, dO = (o2-o1)*Math.PI/180;
+    const s = Math.sin(dA/2)*Math.sin(dA/2) +
+      Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)*Math.sin(dO/2);
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+  function bearingTo(a1, o1, a2, o2){
+    const f1 = a1*Math.PI/180, f2 = a2*Math.PI/180, dl = (o2-o1)*Math.PI/180;
+    const y = Math.sin(dl)*Math.cos(f2);
+    const x = Math.cos(f1)*Math.sin(f2) - Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
+    return (Math.atan2(y, x)*180/Math.PI + 360) % 360;
+  }
+  function compassNearest(){
+    if(!cUser || !cPubs.length) return null;
+    let best = null, bd = Infinity;
+    for(const p of cPubs){
+      if(p.lat === undefined || p.lon === undefined) continue;
+      const d = havKm(cUser.lat, cUser.lon, p.lat, p.lon);
+      const w = p.pub ? d : d * 1.6;   // prefer an actual pub over a restaurant
+      if(w < bd){ bd = w; best = {p: p, km: d}; }
+    }
+    return best;
+  }
+  function compassRender(){
+    const label = $('compass-label'), hint = $('compass-hint'), arrow = $('compass-arrow');
+    const n = compassNearest();
+    if(!n){
+      label.textContent = cUser ? 'No pubs found nearby' : 'Finding the closest pub…';
+      hint.textContent = '';
+      return;
+    }
+    const brg = bearingTo(cUser.lat, cUser.lon, n.p.lat, n.p.lon);
+    arrow.style.transform = 'rotate(' + (brg - (cHeading === null ? 0 : cHeading)) + 'deg)';
+    const dist = n.km < 1 ? Math.round(n.km * 1000) + ' m' : n.km.toFixed(1) + ' km';
+    label.textContent = n.p.name + ' · ' + dist;
+    hint.textContent = cHeading === null ? 'Arrow is map-north · tap the dial to point live' : 'Pointing live as you turn';
+  }
+  function onOrient(e){
+    const h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading
+            : ((e.absolute && typeof e.alpha === 'number') ? (360 - e.alpha) : null);
+    if(h !== null){ cHeading = h; compassRender(); }
+  }
+  $('compass-btn').addEventListener('click', async ()=>{
+    try{
+      if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function'){
+        const p = await DeviceOrientationEvent.requestPermission();   // iOS motion prompt
+        if(p === 'granted') window.addEventListener('deviceorientation', onOrient);
+      } else if(window.DeviceOrientationEvent){
+        window.addEventListener('deviceorientationabsolute', onOrient);
+        window.addEventListener('deviceorientation', onOrient);
+      }
+    }catch(e){}
+    if(!cPubs.length) initPubs();
+    compassRender();
+  });
   // ---------- landing quote, randomised every open ----------
   const QUOTES = [
     "You can't buy happiness, but you can buy beer, and that's pretty close.",
@@ -2067,7 +2173,7 @@ Jug $28.00"></textarea>
     tossCanvas.height = Math.round(tH * dpr);
     tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  function tossRest(){ return {x: tW/2, y: tH - 44}; }
+  function tossRest(){ return {x: tW/2, y: tH - 52}; }
   function faceY(){ return tH * 0.09; }
   function facePos(){
     if(tScore < 3) return tW / 2;                            // mouth stays put while you find your arm
