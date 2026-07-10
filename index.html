@@ -1890,10 +1890,16 @@ Jug $28.00"></textarea>
     keepyCanvas.height = Math.round(kH * dpr);
     kctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+  let kInvert = false;
+  function keepySetInvert(on){
+    kInvert = on;
+    document.body.style.filter = on ? 'invert(1) hue-rotate(180deg)' : '';
+  }
   function keepyStart(){
     keepyResize();
     kState = 'play';
     kScore = 0;
+    keepySetInvert(false);
     $('keepy-score').textContent = '0';
     $('keepy-msg').style.display = 'none';
     kBall = {x: kW/2, y: kH*0.22, vx: Math.random()*160 - 80, vy: -80, taps: 0};
@@ -1904,6 +1910,7 @@ Jug $28.00"></textarea>
   function keepyOver(){
     if(kState !== 'play') return;
     kState = 'over';
+    keepySetInvert(false);
     if(kRaf) cancelAnimationFrame(kRaf);
     if(kScore > kBest){
       kBest = kScore;
@@ -1933,7 +1940,7 @@ Jug $28.00"></textarea>
     if(!document.getElementById('tab-keepy').classList.contains('active')){ keepyOver(); return; }
     const dt = Math.min((now - kLast) / 1000, 0.033);
     kLast = now;
-    const g = 900 + kBall.taps * 35;          // gravity ramps with every tap
+    const g = 850 + Math.floor(kBall.taps / 5) * 260;   // gravity jumps a gear every 5 taps
     kBall.vy += g * dt;
     kBall.x += kBall.vx * dt;
     kBall.y += kBall.vy * dt;
@@ -1953,9 +1960,11 @@ Jug $28.00"></textarea>
       kBall.taps++;
       kScore++;
       $('keepy-score').textContent = kScore;
-      kBall.vy = -(560 + kBall.taps * 8);     // pop it back up, a touch harder each time
-      kBall.vx += (-dx) * 7;                  // tap off-centre to steer it
-      kBall.vx = Math.max(-520, Math.min(520, kBall.vx));
+      // unpredictable pop: random bounce height + random sideways kick on top of the steer
+      kBall.vy = -(460 + Math.random() * 340 + Math.floor(kBall.taps / 5) * 30);
+      kBall.vx += (-dx) * 7 + (Math.random() * 2 - 1) * 300;
+      kBall.vx = Math.max(-560, Math.min(560, kBall.vx));
+      if(kScore % 15 === 0) keepySetInvert(!kInvert);   // every 15 taps: flip the world
     }
   });
   document.addEventListener('visibilitychange', ()=>{
