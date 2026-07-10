@@ -1012,16 +1012,25 @@ Jug $28.00"></textarea>
   let cFar = [];         // pubs/bars only, wider radius, for the compass
   let cUser = null;
   let cHeading = null;   // device heading, degrees clockwise from north
+  // search pubs in growing rings so the CLOSEST is always in the result set
+  // (one big radius truncates arbitrarily and can drop the nearest pub entirely)
   async function overpassPubsWide(lat, lon){
-    const q = '[out:json][timeout:8];(node(around:2500,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten)$"];way(around:2500,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten)$"];);out center 20;';
-    const res = await withTimeout(fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)}), 9000, 'geo-timeout');
-    if(!res.ok) return [];
-    const j = await res.json();
-    return (j.elements||[]).filter(e=> e.tags && e.tags.name).map(e=> ({
-      name: e.tags.name,
-      lat: e.lat !== undefined ? e.lat : (e.center && e.center.lat),
-      lon: e.lon !== undefined ? e.lon : (e.center && e.center.lon)
-    }));
+    const radii = [100, 200, 300, 1000, 4000];
+    for(const r of radii){
+      try{
+        const q = '[out:json][timeout:8];(node(around:'+r+','+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten)$"];way(around:'+r+','+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten)$"];);out center 60;';
+        const res = await withTimeout(fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)}), 9000, 'geo-timeout');
+        if(!res.ok) continue;
+        const j = await res.json();
+        const list = (j.elements||[]).filter(e=> e.tags && e.tags.name).map(e=> ({
+          name: e.tags.name,
+          lat: e.lat !== undefined ? e.lat : (e.center && e.center.lat),
+          lon: e.lon !== undefined ? e.lon : (e.center && e.center.lon)
+        }));
+        if(list.length) return list;
+      }catch(e){}
+    }
+    return [];
   }
   function havKm(a1, o1, a2, o2){
     const R = 6371, dA = (a2-a1)*Math.PI/180, dO = (o2-o1)*Math.PI/180;
@@ -1037,8 +1046,9 @@ Jug $28.00"></textarea>
   }
   function compassNearest(){
     if(!cUser) return null;
-    // pubs and bars ONLY — restaurants never make the compass
-    const candidates = cFar.length ? cFar : cPubs.filter(p=> p.pub);
+    // pubs and bars ONLY — restaurants never make the compass.
+    // Merge the wide search with nearby picker results so a close pub always wins.
+    const candidates = cFar.concat(cPubs.filter(p=> p.pub));
     let best = null, bd = Infinity;
     for(const p of candidates){
       if(p.lat === undefined || p.lon === undefined) continue;
