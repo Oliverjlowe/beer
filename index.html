@@ -248,6 +248,7 @@
   <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
   <button data-tab="games"><span class="icon">🏉</span>Games</button>
   <button data-tab="trivia"><span class="icon">🧠</span>Trivia</button>
+  <button data-tab="keepy"><span class="icon">🕹️</span>Keepy Up</button>
 </nav>
 
 <main id="main">
@@ -256,6 +257,7 @@
   <div class="tab-panel" id="tab-quick">
     <div class="card">
       <h2>One beer, which size wins?</h2>
+      <p class="desc">Input the price for each size to find the best choice.</p>
       <div class="row">
         <div class="field size-input money">
           <label>Schooner (375ml)</label>
@@ -362,6 +364,23 @@ Jug $28.00"></textarea>
       <div class="card-actions" id="trivia-judge" style="display:none; margin-top:12px;">
         <button class="btn btn-small btn-ghost" id="trivia-right" style="border-color:var(--green); color:var(--green);">✅ Got it</button>
         <button class="btn btn-small btn-ghost" id="trivia-wrong" style="border-color:var(--red); color:var(--red);">❌ Missed it</button>
+      </div>
+      <button class="btn btn-ghost btn-small" id="trivia-hint" style="display:none; margin-top:8px; width:100%;">💡 Reveal hints (right answer only worth ½)</button>
+    </div>
+  </div>
+
+  <!-- KEEPY UP -->
+  <div class="tab-panel" id="tab-keepy">
+    <div class="card" style="padding:10px 14px; display:flex; justify-content:space-between; font-size:14px;">
+      <span>Score: <b id="keepy-score" style="color:var(--gold);">0</b></span>
+      <span style="color:var(--text-dim);">Best: <b id="keepy-best">0</b></span>
+    </div>
+    <div id="keepy-area" style="position:relative; height:60vh; background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; touch-action:none; cursor:pointer;">
+      <canvas id="keepy-canvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
+      <div id="keepy-msg" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; pointer-events:none; padding:0 20px;">
+        <div style="font-size:44px;">🍺</div>
+        <div style="font-size:16px; font-weight:700;">Tap the beer to keep it up!</div>
+        <p class="hint" style="margin:0;">It gets faster the longer you last.<br>If it hits the floor, that's a spilt beer.<br><br>Tap anywhere to start.</p>
       </div>
     </div>
   </div>
@@ -822,6 +841,7 @@ Jug $28.00"></textarea>
     document.querySelectorAll('.tab-panel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+name));
     if(name === 'games') loadGames(false);
     if(name === 'trivia' && !triviaCur && !quizOver) nextTrivia();
+    if(name === 'keepy') keepyResize();
   }
 
   function dock(name){
@@ -1594,6 +1614,12 @@ Jug $28.00"></textarea>
   let games = [];
 
   function shortTeam(n){ return String(n||'').replace(/ Football Club$/i, '').trim(); }
+  // end of the current footy week: upcoming Sunday 23:59 local
+  function weekEndTs(){
+    const d = new Date();
+    const daysToSun = (7 - d.getDay()) % 7;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + daysToSun, 23, 59, 59).getTime();
+  }
   function parseTs(ev){
     if(!ev || !ev.strTimestamp) return NaN;
     return Date.parse(ev.strTimestamp + (ev.strTimestamp.indexOf('Z') === -1 ? 'Z' : ''));
@@ -1608,7 +1634,7 @@ Jug $28.00"></textarea>
       const r = await withTimeout(fetch(base + 'eventsnextleague.php?id=' + id), 10000, 'games-timeout');
       if(r.ok) future = fresh((await r.json()).events);
     }catch(e){}
-    const coversWeek = future.length && Math.max.apply(null, future.map(parseTs)) > now + 7*24*3600*1000;
+    const coversWeek = future.length && Math.max.apply(null, future.map(parseTs)) >= weekEndTs();
     if(future.length < 3 || !coversWeek){
       // "next events" data can lag or be too short — fall back to the full season draw for the whole week
       try{
@@ -1630,9 +1656,8 @@ Jug $28.00"></textarea>
   function renderGames(){
     const list = $('games-list');
     const filtered = games.filter(g=> leagueFilter === 'all' || g.league === leagueFilter);
-    // everything in the next 7 days; if a league's on a break, show whatever's next instead
-    const weekEnd = Date.now() + 7*24*3600*1000;
-    let shown = filtered.filter(g=> g.t <= weekEnd);
+    // everything from now through Sunday night; if a league's on a break, show whatever's next instead
+    let shown = filtered.filter(g=> g.t <= weekEndTs());
     if(!shown.length) shown = filtered.slice(0, 10);
     if(!shown.length){
       list.innerHTML = '<div class="empty">No upcoming games loaded — tap Refresh draw.</div>';
@@ -1663,11 +1688,11 @@ Jug $28.00"></textarea>
     const status = $('games-status');
     if(!force){
       try{
-        const c = JSON.parse(localStorage.getItem('beerValueGames')||'null');
+        const c = JSON.parse(localStorage.getItem('beerValueGames2')||'null');
         if(c && (Date.now() - c.ts) < 6*3600*1000 && Array.isArray(c.games) && c.games.length){
           games = c.games.filter(g=> g.t > Date.now() - 3*3600*1000);
           renderGames();
-          status.textContent = 'Draw updated ' + new Date(c.ts).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + ' · times shown in your local time.';
+          status.textContent = 'Games through Sunday · updated ' + new Date(c.ts).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + ' · local times.';
           return;
         }
       }catch(e){}
@@ -1676,8 +1701,8 @@ Jug $28.00"></textarea>
     const results = await Promise.all([fetchLeague('nrl'), fetchLeague('afl')]);
     games = results[0].concat(results[1]).sort((a,b)=> a.t - b.t);
     if(games.length){
-      try{ localStorage.setItem('beerValueGames', JSON.stringify({ts: Date.now(), games: games})); }catch(e){}
-      status.textContent = 'Draw updated just now · times shown in your local time.';
+      try{ localStorage.setItem('beerValueGames2', JSON.stringify({ts: Date.now(), games: games})); }catch(e){}
+      status.textContent = 'Games through Sunday · updated just now · local times.';
     } else {
       status.textContent = "Couldn't load the draw — check your internet and tap Refresh.";
     }
@@ -1698,7 +1723,7 @@ Jug $28.00"></textarea>
   let triviaQueue = [];
   let triviaCur = null;
   let triviaAnswered = false;
-  let triviaPicked = null;
+  let triviaHints = false;
   let quizNum = 0;        // questions completed this round
   let quizScore = 0;
   let quizOver = false;
@@ -1727,7 +1752,8 @@ Jug $28.00"></textarea>
               q: decodeURIComponent(q.question),
               correct: decodeURIComponent(q.correct_answer),
               opts: shuffleArr([q.correct_answer].concat(q.incorrect_answers).map(decodeURIComponent)),
-              diff: decodeURIComponent(q.difficulty || '')
+              diff: decodeURIComponent(q.difficulty || ''),
+              type: q.type || 'multiple'
             });
           });
           saveTrivia();
@@ -1736,8 +1762,15 @@ Jug $28.00"></textarea>
     }catch(e){}
     triviaFetching = false;
   }
+  function fmtScore(n){ return String(Math.round(n * 10) / 10); }
+  // questions like "Which of the following…" make no sense without their options
+  function isIntrinsicMC(qu){
+    return (qu.type || 'multiple') === 'multiple' &&
+      /which (?:one )?of (?:the following|these)|of the following/i.test(qu.q);
+  }
   function renderTrivia(){
-    const qEl = $('trivia-q'), oEl = $('trivia-opts'), btn = $('trivia-btn'), status = $('trivia-status'), judge = $('trivia-judge');
+    const qEl = $('trivia-q'), oEl = $('trivia-opts'), btn = $('trivia-btn'),
+          status = $('trivia-status'), judge = $('trivia-judge'), hintBtn = $('trivia-hint');
     if(quizOver){
       qEl.textContent = '';
       const pct = quizScore / QUIZ_LEN;
@@ -1745,11 +1778,12 @@ Jug $28.00"></textarea>
                     : pct >= 0.6 ? 'Solid effort — worth a schooner. 🍺'
                     : pct >= 0.4 ? 'Middle of the pack — a pot for you. 🤏'
                     : 'Rough round — stick to the drinking. 😅';
-      oEl.innerHTML = `<div class="best-banner"><div class="label">Final score</div><div class="value">${quizScore} / ${QUIZ_LEN}</div><div class="sub">${verdict}</div></div>`;
+      oEl.innerHTML = `<div class="best-banner"><div class="label">Final score</div><div class="value">${fmtScore(quizScore)} / ${QUIZ_LEN}</div><div class="sub">${verdict}</div></div>`;
       status.textContent = '';
       btn.style.display = '';
       btn.textContent = '🔄 Start a new quiz';
       judge.style.display = 'none';
+      hintBtn.style.display = 'none';
       return;
     }
     if(!triviaCur){
@@ -1759,24 +1793,36 @@ Jug $28.00"></textarea>
       btn.style.display = '';
       btn.textContent = '🔄 Try again';
       judge.style.display = 'none';
+      hintBtn.style.display = 'none';
       return;
     }
-    status.textContent = 'Question ' + (quizNum + 1) + ' of ' + QUIZ_LEN + ' · Score ' + quizScore + (triviaCur.diff ? ' · ' + triviaCur.diff : '');
+    status.textContent = 'Question ' + (quizNum + 1) + ' of ' + QUIZ_LEN + ' · Score ' + fmtScore(quizScore) + (triviaCur.diff ? ' · ' + triviaCur.diff : '');
     qEl.textContent = triviaCur.q;
-    oEl.innerHTML = triviaCur.opts.map(o=>{
-      const isAns = triviaAnswered && o === triviaCur.correct;
-      return `<div class="result ${isAns ? 'win' : ''}">
-        <div><div class="name">${escHtml(o)}${isAns ? '<span class="badge">ANSWER</span>' : ''}</div></div>
+    const showOpts = isIntrinsicMC(triviaCur) || triviaHints;
+    if(showOpts){
+      oEl.innerHTML = triviaCur.opts.map(o=>{
+        const isAns = triviaAnswered && o === triviaCur.correct;
+        return `<div class="result ${isAns ? 'win' : ''}">
+          <div><div class="name">${escHtml(o)}${isAns ? '<span class="badge">ANSWER</span>' : ''}</div></div>
+        </div>`;
+      }).join('');
+    } else if(triviaAnswered){
+      oEl.innerHTML = `<div class="result win">
+        <div><div class="name">${escHtml(triviaCur.correct)}<span class="badge">ANSWER</span></div></div>
       </div>`;
-    }).join('');
+    } else {
+      oEl.innerHTML = '';
+    }
     // reveal first, then self-report: did you get it?
     btn.style.display = triviaAnswered ? 'none' : '';
     btn.textContent = '👀 Reveal answer';
     judge.style.display = triviaAnswered ? '' : 'none';
+    hintBtn.style.display = (!triviaAnswered && !showOpts && (triviaCur.type || 'multiple') === 'multiple') ? '' : 'none';
+    $('trivia-right').textContent = triviaHints ? '✅ Got it (+½)' : '✅ Got it';
   }
   async function nextTrivia(){
     triviaAnswered = false;
-    triviaPicked = null;
+    triviaHints = false;
     triviaCur = triviaQueue.shift() || null;
     if(!triviaCur){
       renderTrivia();
@@ -1792,7 +1838,7 @@ Jug $28.00"></textarea>
     nextTrivia();
   }
   function advanceQuiz(gotIt){
-    if(gotIt) quizScore++;
+    if(gotIt) quizScore += triviaHints ? 0.5 : 1;   // hints halve the reward
     quizNum++;
     if(quizNum >= QUIZ_LEN){
       quizOver = true;
@@ -1810,6 +1856,10 @@ Jug $28.00"></textarea>
   });
   $('trivia-right').addEventListener('click', ()=> advanceQuiz(true));
   $('trivia-wrong').addEventListener('click', ()=> advanceQuiz(false));
+  $('trivia-hint').addEventListener('click', ()=>{
+    triviaHints = true;
+    renderTrivia();
+  });
   try{
     const savedTrivia = JSON.parse(localStorage.getItem('beerValueTrivia')||'null');
     if(savedTrivia){
@@ -1819,6 +1869,98 @@ Jug $28.00"></textarea>
       if(quizNum >= QUIZ_LEN){ quizNum = 0; quizScore = 0; }
     }
   }catch(e){}
+
+  // ---------- Keepy Up (tap the beer, don't let it drop) ----------
+  const keepyArea = $('keepy-area');
+  const keepyCanvas = $('keepy-canvas');
+  const kctx = keepyCanvas.getContext('2d');
+  const K_R = 26;          // ball radius
+  const K_TAP = 58;        // generous tap radius
+  let kW = 0, kH = 0;
+  let kState = 'idle';     // idle | play | over
+  let kBall = null, kScore = 0, kBest = 0, kRaf = null, kLast = 0;
+  try{ kBest = +localStorage.getItem('beerValueKeepyBest') || 0; }catch(e){}
+  $('keepy-best').textContent = kBest;
+
+  function keepyResize(){
+    const r = keepyArea.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    kW = r.width; kH = r.height;
+    keepyCanvas.width = Math.round(kW * dpr);
+    keepyCanvas.height = Math.round(kH * dpr);
+    kctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function keepyStart(){
+    keepyResize();
+    kState = 'play';
+    kScore = 0;
+    $('keepy-score').textContent = '0';
+    $('keepy-msg').style.display = 'none';
+    kBall = {x: kW/2, y: kH*0.22, vx: Math.random()*160 - 80, vy: -80, taps: 0};
+    kLast = performance.now();
+    if(kRaf) cancelAnimationFrame(kRaf);
+    kRaf = requestAnimationFrame(keepyTick);
+  }
+  function keepyOver(){
+    if(kState !== 'play') return;
+    kState = 'over';
+    if(kRaf) cancelAnimationFrame(kRaf);
+    if(kScore > kBest){
+      kBest = kScore;
+      try{ localStorage.setItem('beerValueKeepyBest', String(kBest)); }catch(e){}
+      $('keepy-best').textContent = kBest;
+    }
+    const msg = $('keepy-msg');
+    msg.style.display = '';
+    msg.innerHTML = `<div style="font-size:44px;">💥</div>
+      <div style="font-size:17px; font-weight:700;">Spilt it! ${kScore} point${kScore===1?'':'s'}</div>
+      <p class="hint" style="margin:0;">Best: ${kBest} · Tap anywhere to go again</p>`;
+  }
+  function keepyDraw(){
+    kctx.clearRect(0, 0, kW, kH);
+    const tilt = Math.max(-0.5, Math.min(0.5, kBall.vx / 600));
+    kctx.save();
+    kctx.translate(kBall.x, kBall.y);
+    kctx.rotate(tilt);
+    kctx.font = '48px sans-serif';
+    kctx.textAlign = 'center';
+    kctx.textBaseline = 'middle';
+    kctx.fillText('🍺', 0, 2);
+    kctx.restore();
+  }
+  function keepyTick(now){
+    if(kState !== 'play') return;
+    if(!document.getElementById('tab-keepy').classList.contains('active')){ keepyOver(); return; }
+    const dt = Math.min((now - kLast) / 1000, 0.033);
+    kLast = now;
+    const g = 900 + kBall.taps * 35;          // gravity ramps with every tap
+    kBall.vy += g * dt;
+    kBall.x += kBall.vx * dt;
+    kBall.y += kBall.vy * dt;
+    if(kBall.x < K_R){ kBall.x = K_R; kBall.vx = Math.abs(kBall.vx); }
+    if(kBall.x > kW - K_R){ kBall.x = kW - K_R; kBall.vx = -Math.abs(kBall.vx); }
+    if(kBall.y < K_R){ kBall.y = K_R; kBall.vy = Math.abs(kBall.vy) * 0.5; }
+    if(kBall.y > kH - K_R){ keepyDraw(); keepyOver(); return; }
+    keepyDraw();
+    kRaf = requestAnimationFrame(keepyTick);
+  }
+  keepyArea.addEventListener('pointerdown', (e)=>{
+    const r = keepyArea.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    if(kState !== 'play'){ keepyStart(); return; }
+    const dx = x - kBall.x, dy = y - kBall.y;
+    if(dx*dx + dy*dy <= K_TAP*K_TAP){
+      kBall.taps++;
+      kScore++;
+      $('keepy-score').textContent = kScore;
+      kBall.vy = -(560 + kBall.taps * 8);     // pop it back up, a touch harder each time
+      kBall.vx += (-dx) * 7;                  // tap off-centre to steer it
+      kBall.vx = Math.max(-520, Math.min(520, kBall.vx));
+    }
+  });
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'hidden') keepyOver();
+  });
 
   // ---------- Persistence ----------
   function saveState(){
