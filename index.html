@@ -68,12 +68,15 @@
                transform .5s cubic-bezier(.22,1,.36,1), padding .5s ease, gap .5s ease,
                background-color .4s ease, border-color .4s ease;
   }
-  nav.tabbar.docked{
-    left:0; right:0; bottom:0; top:auto; transform:none; gap:0; width:auto; flex-wrap:nowrap;
-    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
-    background:rgba(21,16,8,0.97); border-top:1px solid var(--border);
-    backdrop-filter:blur(10px);
+  nav.tabbar{transition:opacity .35s ease, transform .45s cubic-bezier(.32,.72,0,1);}
+  nav.tabbar.gone{opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(.92);}
+  #more-beer{
+    position:fixed; left:14px; right:14px; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:20;
+    width:auto; opacity:0; pointer-events:none; transform:translateY(80px);
+    box-shadow:0 10px 26px rgba(0,0,0,.5);
+    transition:opacity .4s ease, transform .5s cubic-bezier(.32,.72,0,1);
   }
+  #more-beer.show{opacity:1; pointer-events:auto; transform:translateY(0);}
   nav.tabbar button{
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
     width:118px; height:104px; border-radius:24px; background:var(--card); border:1px solid var(--border);
@@ -84,13 +87,6 @@
   nav.tabbar button .icon{font-size:38px; transition:font-size .5s cubic-bezier(.22,1,.36,1), color .3s ease; line-height:1;}
   nav.tabbar:not(.docked) button .icon{color:var(--gold);}
   .icon svg{width:1em; height:1em; display:block;}
-  nav.tabbar.docked button{
-    width:auto; height:auto; flex:1; border-radius:10px; background:none; border:none;
-    box-shadow:none; padding:8px 2px 4px; font-size:11px; gap:3px; color:var(--text-dim);
-  }
-  nav.tabbar.docked button .icon{font-size:20px;}
-  nav.tabbar.docked button.active{color:var(--gold);}
-  nav.tabbar.docked button.active .icon{filter:drop-shadow(0 0 4px rgba(224,169,64,0.5));}
 
   main{padding:8px 14px 20px; max-width:520px; margin:0 auto; opacity:0; transition:opacity .4s ease .1s;}
   main.show{opacity:1;}
@@ -246,10 +242,12 @@
   <button data-tab="quick"><span class="icon">🍺</span>Quick Check</button>
   <button data-tab="paste"><span class="icon">🍻</span>Paste Menu</button>
   <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
-  <button data-tab="games"><span class="icon">🏉</span>Games</button>
+  <button data-tab="games"><span class="icon">🏉</span>Footy</button>
   <button data-tab="trivia"><span class="icon">🧠</span>Trivia</button>
   <button data-tab="keepy"><span class="icon">🕹️</span>Keepy Up</button>
 </nav>
+
+<button id="more-beer" class="btn btn-primary">🍺 More beer</button>
 
 <main id="main">
 
@@ -341,7 +339,7 @@ Jug $28.00"></textarea>
   <!-- GAMES -->
   <div class="tab-panel" id="tab-games">
     <div class="card">
-      <h2>🏉 Upcoming games</h2>
+      <h2>🏉 This week's footy</h2>
       <div class="method-tabs">
         <button class="method-btn league-btn active" data-league="all">All</button>
         <button class="method-btn league-btn" data-league="nrl">NRL</button>
@@ -845,7 +843,8 @@ Jug $28.00"></textarea>
   }
 
   function dock(name){
-    tabbar.classList.add('docked');
+    tabbar.classList.add('gone');
+    $('more-beer').classList.add('show');
     document.body.classList.add('docked');
     landingWrap.classList.remove('visible');
     landingWrap.classList.add('hidden');
@@ -857,7 +856,8 @@ Jug $28.00"></textarea>
   }
 
   function undock(){
-    tabbar.classList.remove('docked');
+    tabbar.classList.remove('gone');
+    $('more-beer').classList.remove('show');
     document.body.classList.remove('docked');
     landingWrap.classList.remove('hidden');
     landingWrap.classList.add('visible');
@@ -871,17 +871,11 @@ Jug $28.00"></textarea>
   }
 
   tabbar.querySelectorAll('button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      if(tabbar.classList.contains('docked')){
-        activateTab(btn.dataset.tab);
-        saveState();
-      } else {
-        dock(btn.dataset.tab);
-      }
-    });
+    btn.addEventListener('click', ()=> dock(btn.dataset.tab));
   });
 
   $('home-btn').addEventListener('click', undock);
+  $('more-beer').addEventListener('click', undock);
 
   // ---------- Rate helpers & sharing ----------
   function ratePerL(price, ml){ return (price*1000)/ml; }
@@ -1330,6 +1324,7 @@ Jug $28.00"></textarea>
     let list = [];
     let current = null;
     let columns = null;   // active column layout from a header row
+    let section = 'beer'; // assume it's the beer section unless a heading says otherwise
 
     for(const line of lines){
       // 1) inline "size ... price" pairs on this line
@@ -1369,8 +1364,26 @@ Jug $28.00"></textarea>
         }
       }
 
-      // 4) plain name line -> next prices belong to it
+      // 3b) Aussie pub default: "Beer name  9.50  13" — two bare prices side by side
+      //     = schooner then pint (unless we're in a non-beer section of the menu)
+      if(!columns && nums.length === 2 && tokens.length === 0 && section !== 'other'){
+        const name = line.slice(0, nums[0].index).replace(/[-:|•*.$\s]+$/,'').trim();
+        if(name.length > 1 && name.length < 60 && !/^\d/.test(name)){
+          const b = newBeer(name);
+          b.schooner = String(nums[0].price);
+          b.pint = String(nums[1].price);
+          list.push(b);
+          current = b;
+          continue;
+        }
+      }
+
+      // 4) plain name line -> next prices belong to it (also tracks menu sections)
       if(nums.length === 0 && line.length > 1 && line.length < 60 && !/^\$/.test(line)){
+        if(tokens.length === 0){
+          if(/\b(wine|wines|cocktail|spirit|gin|whisky|whiskey|vodka|rum|seltzer|food|snack|pizza|burger|wings|mains?)\b/i.test(line)) section = 'other';
+          else if(/\b(beer|beers|tap|taps|draught|draft|lager|ale|cider)\b/i.test(line)) section = 'beer';
+        }
         current = newBeer(line);
         list.push(current);
       }
@@ -1912,7 +1925,8 @@ Jug $28.00"></textarea>
     kState = 'over';
     keepySetInvert(false);
     if(kRaf) cancelAnimationFrame(kRaf);
-    if(kScore > kBest){
+    const newBest = kScore > kBest;
+    if(newBest){
       kBest = kScore;
       try{ localStorage.setItem('beerValueKeepyBest', String(kBest)); }catch(e){}
       $('keepy-best').textContent = kBest;
@@ -1920,8 +1934,16 @@ Jug $28.00"></textarea>
     const msg = $('keepy-msg');
     msg.style.display = '';
     msg.innerHTML = `<div style="font-size:44px;">💥</div>
-      <div style="font-size:17px; font-weight:700;">Spilt it! ${kScore} point${kScore===1?'':'s'}</div>
-      <p class="hint" style="margin:0;">Best: ${kBest} · Tap anywhere to go again</p>`;
+      <div style="font-size:17px; font-weight:700;">Spilt it! ${kScore} point${kScore===1?'':'s'}${newBest ? ' — new best!' : ''}</div>
+      <p class="hint" style="margin:0;">Best: ${kBest} · Tap anywhere to go again</p>
+      <button class="btn btn-small btn-ghost share-btn" id="keepy-share" style="pointer-events:auto; width:auto; padding:9px 16px;">📲 Share score</button>`;
+    const sb = $('keepy-share');
+    sb.addEventListener('pointerdown', (ev)=> ev.stopPropagation());   // don't restart the game
+    sb.addEventListener('click', ()=>{
+      const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+      shareText('🍺 Kept the beer up for ' + kScore + ' point' + (kScore === 1 ? '' : 's') +
+        ' on BPI Keepy Up' + (newBest ? ' — new personal best!' : '!') + ' “' + quote + '”');
+    });
   }
   function keepyDraw(){
     kctx.clearRect(0, 0, kW, kH);
