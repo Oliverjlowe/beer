@@ -30,21 +30,22 @@
   header h1 span{color:var(--gold);}
   header p{margin:2px 0 0; font-size:12px; color:var(--text-dim);}
 
-  /* ---------- Landing ---------- */
-  .landing-wrap{
-    position:fixed; left:0; right:0; top:calc(52% - 212px); text-align:center; z-index:5;
-    transition:opacity .35s ease, transform .35s ease; pointer-events:none;
-  }
-  .landing-wrap p{font-size:14px; color:var(--text-dim); margin:0;}
-  .landing-wrap.visible{opacity:1; transform:translateY(0);}
-  .landing-wrap.hidden{opacity:0; transform:translateY(10px);}
-
-  .pub-bar{
-    position:fixed; left:0; right:0; top:calc(52% + 188px); z-index:6;
-    display:flex; justify-content:center; align-items:center; gap:8px;
+  /* ---------- Landing (flex column spread down the whole screen) ---------- */
+  #landing{
+    position:fixed; left:0; right:0; z-index:5;
+    top:calc(env(safe-area-inset-top) + 92px);
+    bottom:calc(16px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center; justify-content:space-evenly;
+    gap:4px;
     transition:opacity .35s ease, transform .35s ease;
   }
-  .pub-bar.hidden{opacity:0; transform:translateY(10px); pointer-events:none;}
+  #landing.hidden{opacity:0; transform:translateY(12px); pointer-events:none;}
+  .landing-wrap{text-align:center;}
+  .landing-wrap p{font-size:14px; color:var(--text-dim); margin:0;}
+
+  .pub-bar{
+    display:flex; justify-content:center; align-items:center; gap:8px; width:100%;
+  }
   .pub-bar .pin{font-size:16px;}
   .pub-bar select{
     max-width:72%; background:var(--card); color:var(--text); border:1px solid var(--border);
@@ -53,12 +54,10 @@
   }
 
   .compass-wrap{
-    position:fixed; left:0; right:0; z-index:6;
-    top:max(calc(env(safe-area-inset-top) + 78px), calc(52% - 296px));
     display:flex; justify-content:center; align-items:center; gap:14px;
-    transition:opacity .35s ease, transform .35s ease;
   }
-  .compass-wrap.hidden{opacity:0; transform:translateY(10px); pointer-events:none;}
+  .compass-dial{display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .compass-tap{font-size:9.5px; letter-spacing:0.5px; color:var(--gold); text-transform:uppercase; font-weight:700;}
   #compass-btn{
     width:64px; height:64px; border-radius:50%; flex:none; position:relative; padding:0;
     background:var(--card2); border:2px solid var(--gold-dim); color:var(--gold);
@@ -76,23 +75,14 @@
   .compass-hint{font-size:10.5px; color:var(--text-dim); margin:1px 0 0;}
 
   .landing-quote{
-    position:fixed; left:24px; right:24px; top:calc(52% + 240px); z-index:5; margin:0;
+    margin:0; padding:0 28px; max-width:420px;
     text-align:center; font-size:13px; font-style:italic; color:var(--text-dim); line-height:1.5;
     font-family:Papyrus, 'Papyrus', fantasy, cursive;
-    transition:opacity .35s ease, transform .35s ease; pointer-events:none;
   }
-  .landing-quote.hidden{opacity:0; transform:translateY(10px);}
 
   nav.tabbar{
-    position:fixed; z-index:20; display:flex; flex-wrap:wrap; justify-content:center; gap:14px; width:262px;
-    left:50%; top:52%; transform:translate(-50%,-50%);
-    transition:top .5s cubic-bezier(.22,1,.36,1), left .5s cubic-bezier(.22,1,.36,1),
-               right .5s cubic-bezier(.22,1,.36,1), bottom .5s cubic-bezier(.22,1,.36,1),
-               transform .5s cubic-bezier(.22,1,.36,1), padding .5s ease, gap .5s ease,
-               background-color .4s ease, border-color .4s ease;
+    display:flex; flex-wrap:wrap; justify-content:center; gap:14px; width:262px;
   }
-  nav.tabbar{transition:opacity .35s ease, transform .45s cubic-bezier(.32,.72,0,1);}
-  nav.tabbar.gone{opacity:0; pointer-events:none; transform:translate(-50%,-50%) scale(.92);}
   #more-beer{
     position:fixed; left:14px; right:14px; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:20;
     width:auto; opacity:0; pointer-events:none; transform:translateY(80px);
@@ -250,34 +240,39 @@
   <p>Schooner 375 · Pint 550 · Jug 1125 ml</p>
 </header>
 
-<div class="landing-wrap visible" id="landing-wrap">
-  <p>What do you want to do?</p>
-</div>
-
-<div class="compass-wrap" id="compass-wrap">
-  <button id="compass-btn" title="Beer compass" aria-label="Beer compass"><span id="compass-arrow">▲</span></button>
-  <div class="compass-info">
-    <div class="compass-title">🧭 BEER COMPASS</div>
-    <div class="compass-name" id="compass-label">Finding the closest pub…</div>
-    <div class="compass-hint" id="compass-hint"></div>
+<div id="landing">
+  <div class="compass-wrap" id="compass-wrap">
+    <div class="compass-dial">
+      <button id="compass-btn" title="Beer compass" aria-label="Beer compass"><span id="compass-arrow">▲</span></button>
+      <div class="compass-tap" id="compass-tap">tap to activate</div>
+    </div>
+    <div class="compass-info">
+      <div class="compass-title">🧭 BEER COMPASS</div>
+      <div class="compass-name" id="compass-label">Finding the closest pub…</div>
+      <div class="compass-hint" id="compass-hint"></div>
+    </div>
   </div>
+
+  <div class="landing-wrap" id="landing-wrap">
+    <p>What do you want to do?</p>
+  </div>
+
+  <nav class="tabbar" id="tabbar">
+    <button data-tab="quick"><span class="icon">🍺</span>Quick Check</button>
+    <button data-tab="paste"><span class="icon">🍻</span>Paste Menu</button>
+    <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
+    <button data-tab="games"><span class="icon">🏉</span>Footy</button>
+    <button data-tab="trivia"><span class="icon">🧠</span>Trivia</button>
+    <button data-tab="keepy"><span class="icon">🕹️</span>Games</button>
+  </nav>
+
+  <div class="pub-bar" id="pub-bar">
+    <span class="pin">📍</span>
+    <select id="pub-select" aria-label="Your pub"><option value="">Finding your pub…</option></select>
+  </div>
+
+  <p class="landing-quote" id="landing-quote"></p>
 </div>
-
-<div class="pub-bar" id="pub-bar">
-  <span class="pin">📍</span>
-  <select id="pub-select" aria-label="Your pub"><option value="">Finding your pub…</option></select>
-</div>
-
-<p class="landing-quote" id="landing-quote"></p>
-
-<nav class="tabbar" id="tabbar">
-  <button data-tab="quick"><span class="icon">🍺</span>Quick Check</button>
-  <button data-tab="paste"><span class="icon">🍻</span>Paste Menu</button>
-  <button data-tab="shout"><span class="icon">📣</span>Shouts</button>
-  <button data-tab="games"><span class="icon">🏉</span>Footy</button>
-  <button data-tab="trivia"><span class="icon">🧠</span>Trivia</button>
-  <button data-tab="keepy"><span class="icon">🕹️</span>Games</button>
-</nav>
 
 <button id="more-beer" class="btn btn-primary">🍺 More beer</button>
 
@@ -898,28 +893,18 @@ Jug $28.00"></textarea>
   }
 
   function dock(name){
-    tabbar.classList.add('gone');
+    $('landing').classList.add('hidden');
     $('more-beer').classList.add('show');
     document.body.classList.add('docked');
-    landingWrap.classList.remove('visible');
-    landingWrap.classList.add('hidden');
-    $('pub-bar').classList.add('hidden');
-    $('landing-quote').classList.add('hidden');
-    $('compass-wrap').classList.add('hidden');
     activateTab(name);
     main.classList.add('show');
     saveState();
   }
 
   function undock(){
-    tabbar.classList.remove('gone');
+    $('landing').classList.remove('hidden');
     $('more-beer').classList.remove('show');
     document.body.classList.remove('docked');
-    landingWrap.classList.remove('hidden');
-    landingWrap.classList.add('visible');
-    $('pub-bar').classList.remove('hidden');
-    $('landing-quote').classList.remove('hidden');
-    $('compass-wrap').classList.remove('hidden');
     main.classList.remove('show');
     currentTab = null;
     tabbar.querySelectorAll('button').forEach(b=> b.classList.remove('active'));
@@ -1008,6 +993,7 @@ Jug $28.00"></textarea>
     try{ pubs = await overpassPubs(lat, lon); }catch(e){}
     cPubs = pubs;
     compassRender();
+    overpassPubsWide(lat, lon).then(list=>{ cFar = list; compassRender(); }).catch(()=>{});
     let names = pubs.map(p=> p.name);
     if(!names.length){
       try{ const n = await nominatimPub(lat, lon); if(n) names = [n]; }catch(e){}
@@ -1021,10 +1007,22 @@ Jug $28.00"></textarea>
     }
   }
 
-  // ---------- beer compass: points at the nearest pub ----------
+  // ---------- beer compass: points at the nearest ACTUAL pub ----------
   let cPubs = [];
+  let cFar = [];         // pubs/bars only, wider radius, for the compass
   let cUser = null;
   let cHeading = null;   // device heading, degrees clockwise from north
+  async function overpassPubsWide(lat, lon){
+    const q = '[out:json][timeout:8];(node(around:2500,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten)$"];way(around:2500,'+lat+','+lon+')[name][amenity~"^(pub|bar|biergarten)$"];);out center 20;';
+    const res = await withTimeout(fetch('https://overpass-api.de/api/interpreter', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'data='+encodeURIComponent(q)}), 9000, 'geo-timeout');
+    if(!res.ok) return [];
+    const j = await res.json();
+    return (j.elements||[]).filter(e=> e.tags && e.tags.name).map(e=> ({
+      name: e.tags.name,
+      lat: e.lat !== undefined ? e.lat : (e.center && e.center.lat),
+      lon: e.lon !== undefined ? e.lon : (e.center && e.center.lon)
+    }));
+  }
   function havKm(a1, o1, a2, o2){
     const R = 6371, dA = (a2-a1)*Math.PI/180, dO = (o2-o1)*Math.PI/180;
     const s = Math.sin(dA/2)*Math.sin(dA/2) +
@@ -1038,18 +1036,20 @@ Jug $28.00"></textarea>
     return (Math.atan2(y, x)*180/Math.PI + 360) % 360;
   }
   function compassNearest(){
-    if(!cUser || !cPubs.length) return null;
+    if(!cUser) return null;
+    // pubs and bars ONLY — restaurants never make the compass
+    const candidates = cFar.length ? cFar : cPubs.filter(p=> p.pub);
     let best = null, bd = Infinity;
-    for(const p of cPubs){
+    for(const p of candidates){
       if(p.lat === undefined || p.lon === undefined) continue;
       const d = havKm(cUser.lat, cUser.lon, p.lat, p.lon);
-      const w = p.pub ? d : d * 1.6;   // prefer an actual pub over a restaurant
-      if(w < bd){ bd = w; best = {p: p, km: d}; }
+      if(d < bd){ bd = d; best = {p: p, km: d}; }
     }
     return best;
   }
   function compassRender(){
     const label = $('compass-label'), hint = $('compass-hint'), arrow = $('compass-arrow');
+    $('compass-tap').style.display = cHeading === null ? '' : 'none';
     const n = compassNearest();
     if(!n){
       label.textContent = cUser ? 'No pubs found nearby' : 'Finding the closest pub…';
@@ -1060,24 +1060,33 @@ Jug $28.00"></textarea>
     arrow.style.transform = 'rotate(' + (brg - (cHeading === null ? 0 : cHeading)) + 'deg)';
     const dist = n.km < 1 ? Math.round(n.km * 1000) + ' m' : n.km.toFixed(1) + ' km';
     label.textContent = n.p.name + ' · ' + dist;
-    hint.textContent = cHeading === null ? 'Arrow is map-north · tap the dial to point live' : 'Pointing live as you turn';
+    hint.textContent = cHeading === null ? 'Arrow shows map direction (north up)' : 'Pointing live as you turn';
   }
   function onOrient(e){
     const h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading
             : ((e.absolute && typeof e.alpha === 'number') ? (360 - e.alpha) : null);
     if(h !== null){ cHeading = h; compassRender(); }
   }
-  $('compass-btn').addEventListener('click', async ()=>{
+  function enableOrientation(){
+    window.addEventListener('deviceorientationabsolute', onOrient);
+    window.addEventListener('deviceorientation', onOrient);
+  }
+  async function requestOrientation(){
     try{
-      if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function'){
-        const p = await DeviceOrientationEvent.requestPermission();   // iOS motion prompt
-        if(p === 'granted') window.addEventListener('deviceorientation', onOrient);
-      } else if(window.DeviceOrientationEvent){
-        window.addEventListener('deviceorientationabsolute', onOrient);
-        window.addEventListener('deviceorientation', onOrient);
-      }
+      const p = await DeviceOrientationEvent.requestPermission();   // iOS motion prompt
+      if(p === 'granted') enableOrientation();
     }catch(e){}
-    if(!cPubs.length) initPubs();
+    compassRender();
+  }
+  if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function'){
+    enableOrientation();   // Android / desktop: no prompt needed
+  }
+  // iOS: tap the dial to trigger the motion permission dialog
+  $('compass-btn').addEventListener('click', ()=>{
+    if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function' && cHeading === null){
+      requestOrientation();
+    }
+    if(!cPubs.length && !cFar.length) initPubs();
     compassRender();
   });
   // ---------- landing quote, randomised every open ----------
